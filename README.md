@@ -12,7 +12,7 @@ Uses the NRI MATLAB method provided by the iARPA T&E team (`nri.m`).
 
 ## Install
 ```
-Pkg.clone()
+Pkg.clone("https://github.com/seung-lab/ReconstructionEvaluations.git")
 ```
 
 
