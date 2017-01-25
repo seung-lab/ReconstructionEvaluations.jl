@@ -6,9 +6,12 @@
 
 [![codecov.io](http://codecov.io/github/seung-lab/ReconstructionEvaluations.jl/coverage.svg?branch=master)](http://codecov.io/github/seung-lab/ReconstructionEvaluations.jl?branch=master)
 
-Package to evaluate neuronal reconstructions from electron micrographs.
+Package to evaluate neuronal reconstructions from electron micrographs. Uses the NRI MATLAB method provided by the iARPA T&E team (`nri.m`).
 
-Uses the NRI MATLAB method provided by the iARPA T&E team (`nri.m`).
+## Requires
+```
+MATLAB
+```
 
 ## Install
 ```
