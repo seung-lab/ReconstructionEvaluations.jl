@@ -1,6 +1,8 @@
 module ReconstructionEvaluations
 
 using MATLAB
+using HDF5
+using PyPlot
 
 export 
     load_edges,
@@ -16,6 +18,10 @@ export
     merge_sensitivity,
     split_sensitivity
 
+# MATLAB session variable
+global s1 = nothing
+
 include("count_table.jl")
+include("overlap.jl")
 
 end

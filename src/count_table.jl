@@ -1,6 +1,3 @@
-# MATLAB session variable
-global s1 = nothing
-
 """
 Start MATLAB session for NRI calculation
 """
@@ -9,14 +6,14 @@ function init_MATLAB()
     global s1 = MSession()
     cwd = joinpath(Pkg.dir("ReconstructionEvaluations"), "src")
     println("Changing MATLAB userpath to $cwd")
-    eval_string("userpath('$cwd')")
+    eval_string(s1, "userpath('$cwd')")
 end
 
 """
 Load Synaptor edge csv & parse columns appropriately
 """
 function load_edges(fn)
-    tbl = readdlm(fn, ';')[:,1:3]
+    tbl = readdlm(fn, ';')[:,1:4]
     tbl[:,2] = [map(parse, split(tbl[i,2][2:end-1],",")) for i in 1:size(tbl,1)]
     tbl[:,3] = [map(parse, split(tbl[i,3][2:end-1],",")) for i in 1:size(tbl,1)]
     return tbl
