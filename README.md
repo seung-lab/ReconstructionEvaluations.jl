@@ -1,18 +1,21 @@
 # ReconstructionEvaluations
 
-[![Build Status](https://travis-ci.org/macrintr/ReconstructionEvaluations.jl.svg?branch=master)](https://travis-ci.org/macrintr/ReconstructionEvaluations.jl)
+[![Build Status](https://travis-ci.org/seung-lab/ReconstructionEvaluations.jl.svg?branch=master)](https://travis-ci.org/seung-lab/ReconstructionEvaluations.jl)
 
-[![Coverage Status](https://coveralls.io/repos/macrintr/ReconstructionEvaluations.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/macrintr/ReconstructionEvaluations.jl?branch=master)
+[![Coverage Status](https://coveralls.io/repos/seung-lab/ReconstructionEvaluations.jl/badge.svg?branch=master&service=github)](https://coveralls.io/github/seung-lab/ReconstructionEvaluations.jl?branch=master)
 
-[![codecov.io](http://codecov.io/github/macrintr/ReconstructionEvaluations.jl/coverage.svg?branch=master)](http://codecov.io/github/macrintr/ReconstructionEvaluations.jl?branch=master)
+[![codecov.io](http://codecov.io/github/seung-lab/ReconstructionEvaluations.jl/coverage.svg?branch=master)](http://codecov.io/github/seung-lab/ReconstructionEvaluations.jl?branch=master)
 
-Package to evaluate neuronal reconstructions from electron micrographs.
+Package to evaluate neuronal reconstructions from electron micrographs. Uses the NRI MATLAB method provided by the iARPA T&E team (`nri.m`).
 
-Uses the NRI MATLAB method provided by the iARPA T&E team (`nri.m`).
+## Requires
+```
+MATLAB
+```
 
 ## Install
 ```
-Pkg.clone()
+Pkg.clone("https://github.com/seung-lab/ReconstructionEvaluations.git")
 ```
 
 
