@@ -9,6 +9,7 @@ using Graphics
 export 
     load_edges,
     edges_to_syn_dicts,
+    segm_overlap, overlap_in_chunks, create_segID_map,
     map_synapses,
     get_indexed_seg_IDs,
     build_count_table,
@@ -28,6 +29,8 @@ export
     read_sparse, write_sparse,
     load_seg_sizes, classify_pre_post,
     hist_seg_sizes
+
+import chunk_u
 
 include("matlab.jl")
 include("count_table.jl")
