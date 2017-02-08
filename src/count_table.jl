@@ -1,15 +1,4 @@
 """
-Start MATLAB session for NRI calculation
-"""
-function init_MATLAB()
-    println("Starting MATLAB session...")
-    global s1 = MSession()
-    cwd = joinpath(Pkg.dir("ReconstructionEvaluations"), "src")
-    println("Changing MATLAB userpath to $cwd")
-    eval_string(s1, "userpath('$cwd')")
-end
-
-"""
 Load Synaptor edge csv & parse columns appropriately
 """
 function load_edges(fn)
@@ -127,9 +116,7 @@ end
 Run the T&E team MATLAB function on the count table
 """
 function compute_nri(count_table)
-    if s1 == nothing
-        init_MATLAB()
-    end
+    check_MATLAB()
     put_variable(s1, :x, count_table)
     # return mxcall(:nri, 1, count_table)
     eval_string(s1, "n = nri(double(x));")

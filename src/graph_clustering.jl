@@ -1,4 +1,4 @@
-function load_seg_sizes(fn)
+function load_seg_list(fn)
     return readdlm(fn, ';', Int64)
 end
 
@@ -22,7 +22,16 @@ Select n-sized random set of segment IDs, if total vx above min_size
 function filter_seg_ids_randomly(seg_sizes, n, min_size=5000)
     ids = seg_sizes[seg_sizes[:,2] .>= min_size, 1]
     return ids[randperm(length(ids))[1:n]]
+end
 
+function create_weighted_seg_list(seg_list)
+    weighted_seg_list = copy(seg_list)
+    for i in 1:size(seg_list,1)
+        for k in 2:round(Int64,seg_list[i,3])
+            weighted_seg_list = vcat(weighted_seg_list, seg_list[[i],:])
+        end
+    end
+    return weighted_seg_list
 end
 
 """
@@ -33,6 +42,27 @@ function reweight_adj!(adj)
     for i in 1:length(nzs)
         nzs[i] = log(nzs[i])
     end 
+end
+
+function quantify_pre_post(seg_list, edges)
+    segs = hcat(edges[:,2]...)'
+    pre = segs[:,1]
+    post = segs[:,2]
+    upre = unique(pre)
+    upost = unique(post)
+    seg_list = hcat(seg_list, zeros(Int64, size(seg_list,1), 2))
+    for i in 1:size(seg_list,1)
+        if seg_list[i,1] in upost
+            seg_list[i,end-1] = length(post[post .== seg_list[i,1]])
+            seg_list[i,end] = 2
+        elseif seg_list[i,1] in upre
+            seg_list[i,end-1] = length(pre[pre .== seg_list[i,1]])
+            seg_list[i,end] = 1
+        else
+            seg_list[i,end] = 3
+        end
+    end
+    return seg_list
 end
 
 """
@@ -69,7 +99,28 @@ end
 """
 Create post to pre dicts with indices
 """
-function create_post_pre_dicts(syn_to_segs)
+function create_post_pre_dicts(edges::Array)
+    segs = hcat(edges[:,2]...)'
+    pre_to_post = Dict()
+    post_to_pre = Dict()
+    for k in 1:size(segs,1)
+        pre, post = segs[k,:]
+        if !haskey(pre_to_post, pre)
+            pre_to_post[pre] = Array{Int64,1}()
+        end
+        if !haskey(post_to_pre, post)
+            post_to_pre[post] = Array{Int64,1}()
+        end
+        push!(pre_to_post[pre], post)
+        push!(post_to_pre[post], pre)
+    end
+    return pre_to_post, post_to_pre
+end
+
+"""
+Create post to pre dicts with indices
+"""
+function create_post_pre_dicts(syn_to_segs::Dict)
     pre_to_post = Dict()
     post_to_pre = Dict()
     post_to_index = Dict()
@@ -144,9 +195,7 @@ Uses community_louvain.m by Robinov, available at:
 https://sites.google.com/site/bctnet/Home/functions
 """
 function louvain_clustering(adj)
-    if s1 == nothing
-        init_MATLAB()
-    end
+    check_MATLAB()
     n = size(adj,1)
     M  = collect(1:n);          # initial community affiliations
     Q0 = -1; Q1 = 0;            # initialize modularity values
@@ -159,7 +208,7 @@ function louvain_clustering(adj)
         println("Q1: $Q1")
     end
     M = jvector(get_mvariable(s1, :M))
-    return sortperm(M), Q1
+    return M, sortperm(M)
 end
 
 """
@@ -225,6 +274,50 @@ function write_sparse(fn, arr)
 
     writedlm(fn, hcat(r,c,v))
 end
+
+"""
+
+"""
+function count_clusters(cluster)
+    cluster_ids = sort(unique(cluster))
+    return cluster_ids, [sum(cluster .== id) for id in cluster_ids]
+end
+
+"""
+Create dict of cluster index ranges based on cluster ID
+"""
+function get_sorted_cluster_ranges(cluster)
+    cluster_ids, cluster_counts = count_clusters(cluster)
+    cluster_ranges = Dict()
+    k = 1
+    for (id, c) in zip(cluster_ids, cluster_counts)
+        l = k+c-1
+        cluster_ranges[id] = (k:l)
+        k = l+1 
+    end
+    return cluster_ranges
+end
+
+"""
+Create dict of segment IDs based on cluster ID
+"""
+function get_cluster_segs(perm, cluster_ranges, index_to_seg)
+    cluster_to_segs = Dict()
+    for (id, cluster_range) in cluster_ranges
+        indices = perm[cluster_range]
+        cluster_to_segs[id] = []
+        for ind in indices
+            push!(cluster_to_segs[id], index_to_seg[ind])
+        end
+    end
+    return cluster_to_segs
+end
+
+# function get_synapses_by_cluster(cluster_id, cluster_to_segs::Dict, seg_to_syn)
+# end
+
+# function get_synapses_by_cluster(cluster_id, adj::SparseMatrix, seg_to_syn)
+# end
 
 """
 Convert adjacency matrix indices back to segment IDs

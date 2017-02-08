@@ -56,8 +56,8 @@ function s1_graph_clustering()
 
     # RUN ./GenLouvain/graph_clustering.m in MATLAB
     # (can't figure out how to load MEX files correctly in Julia)
-    louvain_order, Q1 = louvain_clustering(radj)
-    println("Louvain Q1: $Q1")
+    cluster, louvain_order = louvain_clustering(radj)
+    # println("Louvain Q1: $Q1")
     view_order(radj, louvain_order)
 
     # louvain_fn = joinpath(dir, "$(dt)_louvain_order.csv")
@@ -67,7 +67,7 @@ function s1_graph_clustering()
     # view_order(radj, louvain_order)
 
     perm_fn = joinpath(dir, "$(dt)_cluster_perm_$(fn).csv")
-    perm_tbl = hcat(collect(1:size(radj,1)), rand_order, louvain_order)
+    perm_tbl = hcat(collect(1:size(radj,1)), rand_order, louvain_order, round(Int64, cluster))
     writedlm(perm_fn, perm_tbl)
 
     cadj = radj[louvain_order, louvain_order]
@@ -85,6 +85,6 @@ function s1_graph_clustering()
     cdadj_fn = joinpath(dir, "$(dt)_clustered_dendrite_adj_sparse_$(fn).csv")
     write_sparse(cdadj_fn, cdadj)
 
-
+    perm = rand_order[louvain_order]
     write_cluster(dir, index_to_seg, cadj, perm, 12050:12390, 12050:12390)
 end

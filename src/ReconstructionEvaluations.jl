@@ -1,8 +1,10 @@
-module ReconstructionEvaluations
+# module ReconstructionEvaluations
 
 using MATLAB
 using HDF5
+using StatsBase
 using PyPlot
+using Graphics
 
 export 
     load_edges,
@@ -16,12 +18,22 @@ export
     remove_synapse,
     add_synapse,
     merge_sensitivity,
-    split_sensitivity
+    split_sensitivity,
+    Vec3, Point3, BoundingCube,
+    # limits in world coordinates
+    isinside, xmin, xmax, ymin, ymax, zmin, zmax, center, 
+    xrange, yrange, zrange, shift, deform,
+    width, height, depth,
+    # clustering methods
+    read_sparse, write_sparse,
+    load_seg_sizes, classify_pre_post,
+    hist_seg_sizes
 
-# MATLAB session variable
-global s1 = nothing
-
+include("matlab.jl")
 include("count_table.jl")
 include("overlap.jl")
+include("graph_clustering.jl")
+include("geometry.jl")
+include("visualize.jl")
 
-end
+# end
