@@ -28,6 +28,21 @@ function edges_to_syn_dicts(tbl)
 end
 
 """
+Find matching synapse in list of synapse locations given location of one synapse
+
+Input:
+    coordinate of particular synapse
+    list of synase coordinates
+Output:
+    index of most similar synapse coordinate
+
+For now, assume that coordinates exactly line up
+"""
+function find_matching_synapse(syn_A, list_of_syn_B)
+    return findfirst(list_of_syn_B, syn_A)
+end
+
+"""
 For two sets of synapses labels on a given volume, map one set to the other
 
 Input:
@@ -43,7 +58,7 @@ Output:
 function map_synapses(tbl_A, tbl_B)
     synA_to_synB = []
     for i in 1:size(tbl_A,1)
-        ind_B = findfirst(tbl_B[:,3], tbl_A[i,3])
+        ind_B = find_matching_synapse(tbl_A[i,3], tbl_B[:,3])
         if ind_B != 0
             push!(synA_to_synB, [tbl_A[i,1], tbl_B[ind_B,1]])
         else
@@ -52,7 +67,7 @@ function map_synapses(tbl_A, tbl_B)
     end
 
     for i in 1:size(tbl_B,1)
-        ind_A = findfirst(tbl_A[:,3], tbl_B[i,3])
+        ind_A = find_matching_synapse(tbl_B[i,3], tbl_A[:,3])
         if ind_A == 0
             push!(synA_to_synB, [0, tbl_B[i,1]])
         end
