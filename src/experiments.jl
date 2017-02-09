@@ -27,6 +27,24 @@ function pinky10_overlap()
     println("No of dendrite splits: $(sum(den_splits))")
 end
 
+function pinky10_spine_estimate()
+
+    cd("seungmount/research/Nick/IARPA_draft/recon_stats/first_pass")
+    
+    trunks = map(Int,readdlm("checked_trunks"))
+    uncorr_es = load_edges("uncorr_cons_edges.csv")
+    corr_es = load_edges("corrected_cons_edges.csv")
+    impl_om = readdlm("segment_overlap.csv") #NOTE: this doesn't work yet - will change
+
+    om = om_from_impl( impl_om )
+    tm = find_trunk_mapping( om, trunks )
+
+    println("Synapse Recovery")
+    println(synapse_recovery(uncorr_es, corr_es, tm))
+
+    cd()
+end
+
 function s1_graph_clustering()
     dt = Dates.format(Dates.today(), "yymmdd")
     fn = "20000_random"
