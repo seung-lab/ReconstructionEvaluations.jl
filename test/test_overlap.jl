@@ -20,3 +20,18 @@ function test_overlap()
                           2 => 2,
                           4 => 1)
 end
+
+
+@testset "segm_overlap" begin
+
+    S = [1 2 1 2]; T = [1 1 2 2];
+
+    overlaps = segm_overlap(S,T);
+    for s in 1:2, t in 1:2 @test overlaps[(s,t)] == 1 end
+
+    S = [1 2 1 2]; T = [5 5 9 9];
+
+    overlaps = segm_overlap(T,S);
+    for s in [1,2], t in [5,9] @test overlaps[(t,s)] == 1 end
+
+end

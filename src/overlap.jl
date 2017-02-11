@@ -30,6 +30,94 @@ function subsample3d(arr, n=(2,2,1))
     return arr[1:n[1]:end, 1:n[2]:end, 1:n[3]:end]
 end
 
+
+"""
+
+    segm_overlap!{S,T}( seg1::Array{S}, seg2::Array{T}, counts=Dict{Tuple{S,T},Int}() )
+
+  Computes an overlap matrix between two segmentations represented by an explicit dictionary
+  of tuple keys. Modifies an existing counts dictionary if passed.
+"""
+function segm_overlap!{S,T}( seg1::Array{S}, seg2::Array{T}, counts=Dict{Tuple{S,T},Int}() )
+
+    zS, zT = S(0), T(0)
+    for i in eachindex(seg1)
+
+      v1, v2 = seg1[i], seg2[i]
+
+      if v1 == zS continue end
+      if v2 == zT continue end
+
+      k = (v1,v2)
+      if !haskey(counts, k) counts[k] = 1
+      else counts[k] += 1
+      end
+
+    end
+
+    counts
+end
+
+segm_overlap(seg1, seg2) = segm_overlap!(seg1, seg2)
+
+
+"""
+
+    overlap_in_chunks( seg1, seg2, chunk_shape, verb=true )
+
+  Computes an overlap matrix between two segmentations represented by an explicit dictionary
+  of tuple keys. Operates over datasets which are too large to fit in RAM, building the matrix
+  in chunks of size chunk_shape.
+"""
+function overlap_in_chunks( seg1, seg2, chunk_shape, verb=true )
+
+    @assert size(seg1) == size(seg2)
+    S, T = eltype(seg1), eltype(seg2)
+
+    cbs = chunk_u.chunk_bounds( size(seg1), chunk_shape )
+    counts = Dict{Tuple{S,T},Int}();
+
+    for cb in cbs
+      
+      if verb println("Chunk: $cb") end
+
+      seg1ch = chunk_u.fetch_chunk( seg1, cb )
+      seg2ch = chunk_u.fetch_chunk( seg2, cb )
+
+      segm_overlap!( seg1ch, seg2ch, counts )
+
+    end
+
+    counts
+end
+
+
+"""
+
+    om_from_impl( impl )
+
+  Creates an official Julia sparse matrix from the "implicit" dict of keys
+  version returned by segm_overlap, overlap_in_chunks, etc.
+"""
+function om_from_impl( impl )
+
+    #find max keys
+    max_r, max_c = 0,0
+    for (k,v) in impl
+      max_r = max(k[1],max_r)
+      max_c = max(k[2],max_c)
+    end
+
+    om = spzeros(Int, max_r, max_c)
+
+    for (k,v) in impl
+      om[k[1],k[2]] = v
+    end
+
+    om
+end
+
+
 function create_segID_map(segA, segB)
     @assert size(segA) == size(segB)
     segA_ids = unique(segA)

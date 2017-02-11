@@ -1,4 +1,4 @@
-# module ReconstructionEvaluations
+module ReconstructionEvaluations
 
 using MATLAB
 using HDF5
@@ -9,6 +9,7 @@ using Graphics
 export 
     load_edges,
     edges_to_syn_dicts,
+    segm_overlap, overlap_in_chunks, create_segID_map,
     map_synapses,
     get_indexed_seg_IDs,
     build_count_table,
@@ -19,6 +20,8 @@ export
     add_synapse,
     merge_sensitivity,
     split_sensitivity,
+    #synapse recovery estimates
+    find_trunk_mapping, synapse_recovery,
     Vec3, Point3, BoundingCube,
     # limits in world coordinates
     isinside, xmin, xmax, ymin, ymax, zmin, zmax, center, 
@@ -29,6 +32,8 @@ export
     load_seg_sizes, classify_pre_post,
     hist_seg_sizes
 
+import chunk_u
+
 include("matlab.jl")
 include("import.jl")
 include("count_table.jl")
@@ -36,5 +41,6 @@ include("overlap.jl")
 include("graph_clustering.jl")
 include("geometry.jl")
 include("visualize.jl")
+include("syn_recovery.jl")
 
-# end
+end
