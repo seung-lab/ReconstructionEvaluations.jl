@@ -1,7 +1,3 @@
-function load_seg_list(fn)
-    return readdlm(fn, ';', Int64)
-end
-
 """
 Return top n segment IDs based on sorted ID
 """
@@ -99,8 +95,8 @@ end
 """
 Create post to pre dicts with indices
 """
-function create_post_pre_dicts(edges::Array)
-    segs = hcat(edges[:,2]...)'
+function create_post_pre_dicts(segs::Array)
+    # segs = hcat(edges[:,2]...)'
     pre_to_post = Dict()
     post_to_pre = Dict()
     for k in 1:size(segs,1)

@@ -30,6 +30,7 @@ export
     hist_seg_sizes
 
 include("matlab.jl")
+include("import.jl")
 include("count_table.jl")
 include("overlap.jl")
 include("graph_clustering.jl")

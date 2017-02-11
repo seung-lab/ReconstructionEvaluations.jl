@@ -1,14 +1,4 @@
 """
-Load Synaptor edge csv & parse columns appropriately
-"""
-function load_edges(fn)
-    tbl = readdlm(fn, ';')[:,1:4]
-    tbl[:,2] = [map(parse, split(tbl[i,2][2:end-1],",")) for i in 1:size(tbl,1)]
-    tbl[:,3] = [map(parse, split(tbl[i,3][2:end-1],",")) for i in 1:size(tbl,1)]
-    return tbl
-end
-
-"""
 Convert edge table into set of synapse-key dictionaries.
 
 Output:
@@ -75,6 +65,42 @@ function map_synapses(tbl_A, tbl_B)
     return hcat(synA_to_synB...)'
 end
 
+# """
+# For two sets of synapses labels on a given volume, map one set to the other
+
+# Input:
+#     synapse set A IDs with centroid location as 3-element coordinate (Ax2 array)
+#     synapse set B IDs with centroid location as 3-element coordinate (Bx2 array)
+#     list of seg IDs from tbl_A whose synapses should be kept
+
+# Output:
+#     Nx2 array: 
+#         col 1: synapse set A IDs
+#         col 2: associated synapse set B IDs
+#         If there is no associated ID, that column entry will be 0
+# """
+# function map_synapses(tbl_A, tbl_B, filter_seg_IDs)
+#     synA_to_synB = []
+#     for i in 1:size(tbl_A,1)
+#         if (tbl_A[i,2][1] in filter_seg_IDs) & (tbl_A[i,2][2] in filter_seg_IDs)
+#             ind_B = find_matching_synapse(tbl_A[i,3], tbl_B[:,3])
+#             if ind_B != 0
+#                 push!(synA_to_synB, [tbl_A[i,1], tbl_B[ind_B,1]])
+#             else
+#                 push!(synA_to_synB, [tbl_A[i,1], 0])
+#             end
+#         end
+#     end
+
+#     for i in 1:size(tbl_B,1)
+#         ind_A = find_matching_synapse(tbl_B[i,3], tbl_A[:,3])
+#         if ind_A == 0
+#             push!(synA_to_synB, [0, tbl_B[i,1]])
+#         end
+#     end
+#     return hcat(synA_to_synB...)'
+# end
+
 """
 Create dict of all segment IDs contained within edge table & ranked index
 
@@ -134,8 +160,8 @@ function compute_nri(count_table)
     check_MATLAB()
     put_variable(s1, :x, count_table)
     # return mxcall(:nri, 1, count_table)
-    eval_string(s1, "n = nri(double(x));")
-    return jscalar(get_mvariable(s1, :n))
+    eval_string(s1, "[n, nN, roc] = nri(double(x));")
+    return jscalar(get_mvariable(s1, :n)), jvector(get_mvariable(s1, :nN))
 end
 
 """

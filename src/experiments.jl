@@ -1,5 +1,5 @@
 function pinky10_overlap()
-    dir = joinpath(homedir(), "seungmount/Omni/TracerTasks/pinky/evaluation")
+    dir = joinpath(homedir(), "seungmount/Omni/TracerTasks/pinky/evaluation/170123_pinky10_golden")
     base_fn = "chunk_19585-21632_22657-24704_4003-4258"
     gt_seg_fn = joinpath(dir, string(base_fn, "_proofread_compressed.h5"))
     orig_seg_fn = joinpath(dir, string(base_fn, "_original_compressed.h5"))
