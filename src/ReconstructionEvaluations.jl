@@ -6,6 +6,7 @@ using StatsBase
 using PyPlot
 using Graphics
 
+
 export 
     load_edges,
     edges_to_syn_dicts,
@@ -32,15 +33,19 @@ export
     load_seg_sizes, classify_pre_post,
     hist_seg_sizes
 
-import chunk_u
 
-include("matlab.jl")
-include("import.jl")
-include("count_table.jl")
-include("overlap.jl")
-include("graph_clustering.jl")
-include("geometry.jl")
-include("visualize.jl")
-include("syn_recovery.jl")
+include("utils/include.jl")
+include("eval/include.jl")
+include("analysis/include.jl")
+include("experiments/experiments.jl")
+
+#include("matlab.jl")
+#include("import.jl")
+#include("count_table.jl")
+#include("overlap.jl")
+#include("graph_clustering.jl")
+#include("geometry.jl")
+#include("visualize.jl")
+#include("syn_recovery.jl")
 
 end
