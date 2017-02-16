@@ -1,4 +1,12 @@
 
+#=
+Driver code for this SPECIFIC commit of Synaptor
+
+(The current commit contains a good deal of hacks to make things work
+ quickly. Once I update that repo, I can tailor this module to fit the new
+ code)
+=#
+
 module Synaptor
 
 
@@ -74,10 +82,25 @@ end
 """
 Removes the mapping output file
 """
-rm_mapping_file(prefix) = rm("$(output_prefix)_mapping.csv")
+rm_mapping_file(prefix) = rm("$(prefix)_mapping.csv")
 """
 Removes the seg output_file
 """
-rm_seg_file(prefix) = rm("$(output_prefix)_seg.csv")
+rm_seg_file(prefix) = rm("$(prefix)_seg.h5")
+
+
+"""
+
+    rm_duplicates( input_fname , out_fname, dist_thresh, res )
+
+Runs the rm_duplicates script on an edge file, and saves
+the results under out_fname.
+"""
+function rm_duplicates( input_fname, out_fname, dist_thresh, res )
+  this_dir = dirname(@__FILE__)
+  rm_dups = joinpath(this_dir,"Synaptor/src/rm_duplicates.jl")
+  println("julia $rm_dups $input_fname $out_fname $dist_thresh $res")
+  run(`julia $rm_dups $input_fname $out_fname $dist_thresh $res`)
+end
 
 end #module end
