@@ -1,6 +1,4 @@
 #!/usr/bin/env julia
-__precompile__()
-
 
 module chunk_u
 
