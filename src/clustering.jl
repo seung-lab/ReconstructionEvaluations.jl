@@ -63,10 +63,12 @@ end
 
 """
 Make dicts w/ reverses for synapses & segments (rather than use edge array)
+
+Inputs:
+    edges:  Nx4 array - syn ID, [pre ID, post ID], [syn coord], syn size
+    filter_ids: list of segment IDs that should be included
 """
-function create_graph_dicts(edges, filter_ids=[], include_nulls=false)
-    seg_to_index = Dict()
-    index_to_seg = Dict()
+function create_graph_dicts(edges, filter_ids)
     syn_to_segs = Dict()
     segs_to_syn = Dict()
     syn_coords = Dict()
@@ -79,21 +81,12 @@ function create_graph_dicts(edges, filter_ids=[], include_nulls=false)
             segs_to_syn[edges[i,2]] = edges[i,1]
         end
     end
-    segs = sort(filter_ids)
-    if !include_nulls
-        segs = sort(unique(vcat(values(syn_to_segs)...)))
-    end
-    for (k, seg) in enumerate(segs)
-        seg_to_index[seg] = k
-        index_to_seg[k]   = seg
-    end
 
-    return seg_to_index, index_to_seg, syn_to_segs, segs_to_syn, 
-                                                        syn_coords, syn_size
+    return syn_to_segs, segs_to_syn, syn_coords, syn_size
 end
 
 """
-Create post to pre dicts with indices
+Create post to pre dicts from Nx2 list of pre post pairs
 """
 function create_post_pre_dicts(segs::Array)
     # segs = hcat(edges[:,2]...)'
@@ -116,12 +109,14 @@ end
 """
 Create post to pre dicts with indices
 """
-function create_post_pre_dicts(syn_to_segs::Dict)
+function create_post_pre_syn_dicts(syn_to_segs::Dict)
+    post_to_syn = Dict()
+    pre_to_syn = Dict()
     pre_to_post = Dict()
     post_to_pre = Dict()
     post_to_index = Dict()
     index_to_post = Dict()
-    for (pre, post) in values(syn_to_segs)
+    for (syn, (pre, post)) in syn_to_segs
         if !haskey(pre_to_post, pre)
             pre_to_post[pre] = []
         end
@@ -130,12 +125,32 @@ function create_post_pre_dicts(syn_to_segs::Dict)
         end
         push!(pre_to_post[pre], post)
         push!(post_to_pre[post], pre)
+
+        if !haskey(post_to_syn, post)
+            post_to_syn[post] = []
+        end
+        if !haskey(pre_to_syn, pre)
+            pre_to_syn[pre] = []
+        end
+        push!(pre_to_syn[pre], syn)
+        push!(post_to_syn[post], syn)
     end
-    for (k, post) in enumerate(keys(post_to_pre))
-        post_to_index[post] = k
-        index_to_post[k]   = post
+    return pre_to_post, post_to_pre, pre_to_syn, post_to_syn
+end
+
+"""
+Create index lookup dictionaries for a list of values
+
+Note: used to help create adjacency matrix
+"""
+function create_index_dict(list)
+    v_to_index = Dict()
+    index_to_v = Dict()
+    for (ind, v) in enumerate(list)
+        v_to_index[v] = ind
+        index_to_v[ind] = v
     end
-    return pre_to_post, post_to_pre, post_to_index, index_to_post
+    return v_to_index, index_to_v
 end
 
 """
@@ -309,16 +324,42 @@ function get_cluster_segs(perm, cluster_ranges, index_to_seg)
     return cluster_to_segs
 end
 
-# function get_synapses_by_cluster(cluster_id, cluster_to_segs::Dict, seg_to_syn)
-# end
+"""
+Create dict for cluster ID to table of pre ID & post IDs
+"""
+function get_cluster_to_pre_post(perm, adj, index_to_seg, cluster_ranges)
+    cluster_to_pre_post = Dict()
+    for (cluster_id, cluster_range) in cluster_ranges
+        pre_segs, post_segs = get_segment_ids(perm, adj, index_to_seg, 
+                                                cluster_range, cluster_range)
+        cluster_tbl = hcat(pre_segs, post_segs)
+        cluster_to_pre_post[cluster_id] = cluster_tbl
+    end
+    return cluster_to_pre_post
+end
 
-# function get_synapses_by_cluster(cluster_id, adj::SparseMatrix, seg_to_syn)
-# end
+"""
+Create dict for cluster ID pairs with table of pre ID & post IDs
+
+This is to get connections within and between clusters
+"""
+function get_pair_cluster_to_pre_post(perm, adj, index_to_seg, cluster_ranges)
+    cluster_to_pre_post = Dict()
+    for (id_A, range_A) in cluster_ranges
+        for (id_B, range_B) in cluster_ranges
+            pre_segs, post_segs = get_segment_ids(perm, adj, index_to_seg, 
+                                                            range_A, range_B)
+            cluster_tbl = hcat(pre_segs, post_segs)
+            cluster_to_pre_post[(id_A,id_B)] = cluster_tbl
+        end
+    end
+    return cluster_to_pre_post
+end
 
 """
 Convert adjacency matrix indices back to segment IDs
 """
-function get_segment_ids(index_to_seg, adj, perm, pre_range, post_range)
+function get_segment_ids(perm, adj, index_to_seg, pre_range, post_range)
     pre_segs = []
     post_segs = []
     rows = rowvals(adj)
@@ -326,7 +367,6 @@ function get_segment_ids(index_to_seg, adj, perm, pre_range, post_range)
     for j = 1:n
         for i in nzrange(adj, j)
             if rows[i] in pre_range && j in post_range
-                # println((rows[i], j))
                 push!(pre_segs, index_to_seg[perm[rows[i]]])
                 push!(post_segs, index_to_seg[perm[j]])
             end

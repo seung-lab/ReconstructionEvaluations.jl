@@ -39,7 +39,12 @@ BCT_2 = BoundingCube(6, 7, 8, 9, 10, 11)
 @test BCT_1 + BCT_2 == BoundingCube(2, 7, 4, 9, 6, 11)
 
 #### BoundingCube (&)
-# @test BCT_1 & BCT_2 == BoundingCube(6, 3, 8, 5, )
+@test BCT_1 & BCT_2 == BoundingCube(NaN, NaN, NaN, NaN, NaN, NaN)
+
+BCT_3 = BoundingCube(1, 5, 1, 5, 1, 5)
+BCT_4 = BoundingCube(2, 8, 2, 8, 2, 8)
+
+@test BCT_3 & BCT_4 == BoundingCube(2, 5, 2, 5, 2, 5)
 
 #### deform()
 @test deform(BCT_1, -1, 2, -3, 4, -5, 6) == BoundingCube(1, 5, 1, 9, 1, 13)

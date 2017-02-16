@@ -1,12 +1,4 @@
 """
-Return segment IDs of all segments in the valid list
-"""
-function load_valid_list(fn)
-    vl = readdlm(fn, ',', Int64)
-    return vl[vl[:,2] .== 2,1]
-end
-
-"""
 Return Nx2 array with segment IDs and semantic labels
 """
 function load_semantic_list(fn)

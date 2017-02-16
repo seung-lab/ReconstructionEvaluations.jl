@@ -88,14 +88,19 @@ function (+)(bc1::BoundingCube, bc2::BoundingCube)
                 max(bc1.zmax, bc2.zmax))
 end
 
-# function (&)(bc1::BoundingCube, bc2::BoundingCube)
-#     BoundingCube(max(bc1.xmin, bc2.xmin),
-#                 min(bc1.xmax, bc2.xmax),
-#                 max(bc1.ymin, bc2.ymin),
-#                 min(bc1.ymax, bc2.ymax),
-#                 max(bc1.zmin, bc2.zmin),
-#                 min(bc1.zmax, bc2.zmax))
-# end
+function (&)(bc1::BoundingCube, bc2::BoundingCube)
+  xmin = max(bc1.xmin, bc2.xmin)
+  ymin = max(bc1.ymin, bc2.ymin)
+  zmin = max(bc1.zmin, bc2.zmin)
+  xmax = min(bc1.xmax, bc2.xmax)
+  ymax = min(bc1.ymax, bc2.ymax)
+  zmax = min(bc1.zmax, bc2.zmax)
+  if xmax < xmin || ymax < ymin || zmax < zmin
+    return BoundingCube(NaN, NaN, NaN, NaN, NaN, NaN)
+  else
+    return BoundingCube(xmin, xmax, ymin, ymax, zmin, zmax)
+  end
+end
 
 function deform(bc::BoundingCube, dl, dr, dt, db, df, dbk)
     BoundingCube(bc.xmin + dl, bc.xmax + dr, bc.ymin + dt, bc.ymax + db,

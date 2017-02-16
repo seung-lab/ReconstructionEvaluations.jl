@@ -1,4 +1,4 @@
-module ReconstructionEvaluations
+# module ReconstructionEvaluations
 
 using MATLAB
 using HDF5
@@ -32,15 +32,16 @@ export
     load_seg_sizes, classify_pre_post,
     hist_seg_sizes
 
-import chunk_u
+# import chunk_u
 
-include("matlab.jl")
 include("import.jl")
+# include("chunk_u.jl")
+include("matlab.jl")
 include("count_table.jl")
 include("overlap.jl")
-include("graph_clustering.jl")
+include("clustering.jl")
 include("geometry.jl")
 include("visualize.jl")
 include("syn_recovery.jl")
 
-end
+# end
