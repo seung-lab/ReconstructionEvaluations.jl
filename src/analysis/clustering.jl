@@ -78,7 +78,10 @@ function create_graph_dicts(edges, filter_ids)
             syn_to_segs[edges[i,1]] = edges[i,2]
             syn_coords[edges[i,1]]  = edges[i,3]
             syn_size[edges[i,1]]    = edges[i,4]
-            segs_to_syn[edges[i,2]] = edges[i,1]
+            if !haskey(segs_to_syn, edges[i,2])
+                segs_to_syn[edges[i,2]] = Array{Int64,1}()
+            end
+            push!(segs_to_syn[edges[i,2]], edges[i,1])
         end
     end
 
