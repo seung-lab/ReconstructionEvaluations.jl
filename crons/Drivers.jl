@@ -21,7 +21,7 @@ function run_synaptor_cfg( cfg, output_prefix, dist_thr, res,
 
   #The string interpolation is a bit funky, so the resolution
   # vector should be written as a string
-  Synaptor.rm_duplicates( edge_filename, cons_edge_filename, dist, string(res) )
+  Synaptor.rm_duplicates( edge_filename, cons_edge_filename, dist_thr, string(res) )
 
   cons_edge_filename
 end

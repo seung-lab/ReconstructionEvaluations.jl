@@ -5,6 +5,11 @@ function load_seg_list(fn)
     return readdlm(fn, ';', Int64)
 end
 
+function load_semmap(fname)
+    table = readdlm(fname, ';', Int)
+    Dict( table[i,1] => table[i,2] for i in 1:size(table,1) )
+end
+
 """
 Load Synaptor edge csv & parse columns appropriately
 """
