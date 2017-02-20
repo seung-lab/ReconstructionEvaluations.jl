@@ -2,9 +2,9 @@
 
 import ReconstructionEvaluations
 import ReconstructionEvaluations.Cron.Synaptor
+import ReconstructionEvaluations.Cron.Drivers
 const RE = ReconstructionEvaluations
 
-import Drivers
 
 using HDF5
 #using Gadfly
@@ -35,7 +35,7 @@ println("RUNNING SYNAPTOR POSTPROCESSING")
 
 cfg = Synaptor.make_gc_cfg(seg_fname, output_prefix)
 
-#edge_fname = Drivers.run_synaptor_cfg( cfg, output_prefix, dist_thr, res )
+edge_fname = Drivers.run_synaptor_cfg( cfg, output_prefix, dist_thr, res )
 edge_fname = "$(output_prefix)_edges_cons.csv"
 
 #==

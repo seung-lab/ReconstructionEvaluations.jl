@@ -4,6 +4,7 @@ module Drivers
 
 import ReconstructionEvaluations
 import ReconstructionEvaluations.Cron.Synaptor
+import ReconstructionEvaluations.io
 
 const RE = ReconstructionEvaluations
 
@@ -35,8 +36,8 @@ Finds the overlap matrix for two h5 segmentations as a sparse matrix
 """
 function h5_file_om( seg1fname, seg2fname, chunk_shape, verb=true )
 
-  seg1 = RE.read_h5(seg1fname, false)
-  seg2 = RE.read_h5(seg2fname, false)
+  seg1 = io.read_h5(seg1fname, false)
+  seg2 = io.read_h5(seg2fname, false)
 
   impl_om = RE.overlap_in_chunks(seg1, seg2, chunk_shape, verb)
 
