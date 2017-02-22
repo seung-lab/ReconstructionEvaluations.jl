@@ -1,4 +1,4 @@
-# module ReconstructionEvaluations
+module ReconstructionEvaluations
 
 using MATLAB
 using HDF5
@@ -40,4 +40,4 @@ include("eval/include.jl")
 include("analysis/include.jl")
 include("experiments/experiments.jl")
 
-# end
+end

@@ -1,3 +1,8 @@
+
+module io
+
+using HDF5
+
 """
 Load segment size list
 """
@@ -5,10 +10,12 @@ function load_seg_list(fn)
     return readdlm(fn, ';', Int64)
 end
 
+
 function load_semmap(fname)
     table = readdlm(fname, ';', Int)
     Dict( table[i,1] => table[i,2] for i in 1:size(table,1) )
 end
+
 
 """
 Load Synaptor edge csv & parse columns appropriately
@@ -20,12 +27,6 @@ function load_edges(fn)
     return tbl
 end
 
-"""
-Load Omni working/valid/uncertain
-"""
-function load_valid_list(fn)
-	return readdlm(fn, ',', Int64)
-end
 
 function read_h5( fname, read_whole_dset=true, h5_dset_name="/main" )
 
@@ -38,6 +39,7 @@ function read_h5( fname, read_whole_dset=true, h5_dset_name="/main" )
 
   d
 end
+
 
 function write_map_file( output_fname, dicts... )
 
@@ -53,3 +55,6 @@ function write_map_file( output_fname, dicts... )
   end#open
 
 end
+
+
+end #module end

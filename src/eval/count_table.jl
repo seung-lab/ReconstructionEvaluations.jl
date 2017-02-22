@@ -164,6 +164,16 @@ function compute_nri(count_table)
     return jscalar(get_mvariable(s1, :n)), jvector(get_mvariable(s1, :nN))
 end
 
+function compute_nri( table1::Array, table2::Array )
+  count_table = build_count_table(table1, table2)
+  compute_nri(count_table)
+end
+
+function compute_nri( fname1::AbstractString, fname2::AbstractString )
+  table1, table2 = load_edges(fname1), load_edges(fname2)
+  compute_nri(table1, table2)
+end
+
 """
 Simulate a merge error in the count table
 """
