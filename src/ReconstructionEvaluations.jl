@@ -6,6 +6,7 @@ using StatsBase
 using PyPlot
 using Graphics
 
+plt[:style][:use]("ggplot")
 
 export 
     load_edges,
