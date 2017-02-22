@@ -1,5 +1,17 @@
 #!/usr/bin/env julia
 
+#A few utilities to estimate the percentage of detached
+# dendritic spines
+
+"""
+
+    find_trunk_mapping( om, trunk_list )
+
+Given an overlap matrix and list of segment ids, find the segments
+which overlap the most in the compared segmentation. If the segment
+arguments are trunks, the results are likely to correspond to the
+same trunks in the comparison segmentation.
+"""
 function find_trunk_mapping( om, trunk_list )
 
     trunk_om = om[trunk_list,:];
@@ -11,6 +23,14 @@ function find_trunk_mapping( om, trunk_list )
 end
 
 
+"""
+
+    synapse_recovery( uncorr_es, corr_es, trunk_mapping )
+
+Given synapse tables (as read by load_edges) and a trunk mapping,
+determine the ratio between the number of synapses innervating the
+mapped segments in each segmentation.
+"""
 function synapse_recovery( uncorr_es, corr_es, trunk_mapping )
 
     corr_segs = corr_es[:,2]; uncorr_segs = uncorr_es[:,2];
