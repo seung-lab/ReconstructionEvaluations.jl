@@ -26,7 +26,7 @@ Input:
 Output:
     index of most similar synapse coordinate
 
-For now, assume that coordinates exactly line up
+For now, assume that synapse coordinates exactly line up
 """
 function find_matching_synapse(syn_A, list_of_syn_B)
     return findfirst(list_of_syn_B, syn_A)
@@ -65,57 +65,6 @@ function map_synapses(tbl_A, tbl_B)
     return hcat(synA_to_synB...)'
 end
 
-# """
-# For two sets of synapses labels on a given volume, map one set to the other
-
-# Input:
-#     synapse set A IDs with centroid location as 3-element coordinate (Ax2 array)
-#     synapse set B IDs with centroid location as 3-element coordinate (Bx2 array)
-#     list of seg IDs from tbl_A whose synapses should be kept
-
-# Output:
-#     Nx2 array: 
-#         col 1: synapse set A IDs
-#         col 2: associated synapse set B IDs
-#         If there is no associated ID, that column entry will be 0
-# """
-# function map_synapses(tbl_A, tbl_B, filter_seg_IDs)
-#     synA_to_synB = []
-#     for i in 1:size(tbl_A,1)
-#         if (tbl_A[i,2][1] in filter_seg_IDs) & (tbl_A[i,2][2] in filter_seg_IDs)
-#             ind_B = find_matching_synapse(tbl_A[i,3], tbl_B[:,3])
-#             if ind_B != 0
-#                 push!(synA_to_synB, [tbl_A[i,1], tbl_B[ind_B,1]])
-#             else
-#                 push!(synA_to_synB, [tbl_A[i,1], 0])
-#             end
-#         end
-#     end
-
-#     for i in 1:size(tbl_B,1)
-#         ind_A = find_matching_synapse(tbl_B[i,3], tbl_A[:,3])
-#         if ind_A == 0
-#             push!(synA_to_synB, [0, tbl_B[i,1]])
-#         end
-#     end
-#     return hcat(synA_to_synB...)'
-# end
-
-"""
-Create dict of all segment IDs contained within edge table & ranked index
-
-Output:
-    Dict (k,v):(segment IDs, rank of segment ID in all segment IDs)
-"""
-function get_indexed_seg_IDs(tbl)
-    ids = sort(unique(vcat(tbl[:,2]...)))
-    seg_indices = Dict()
-    for (i, id) in enumerate(ids)
-        seg_indices[id] = i
-    end
-    return seg_indices
-end
-
 """
 Construct table for NRI from two edge tables (see Synaptor by N Turner)
 
@@ -123,55 +72,37 @@ Input:
     edge tables for two reconstructions
 
 Output:
-    (A+1)x(B+1) count table built according to:
+    (A+1)x(B+1) sparse count table built according to:
                 '160618 - Computing NRI, Documentation.pdf'
         1st column & 1st row are FP
+    lookup of row index to segment ID (considers row 2 to be index 1)
+    lookup of col index to segment ID (considers col 2 to be index 1)
+
 """
 function build_count_table(tbl_A, tbl_B)
     synA_to_synB = map_synapses(tbl_A, tbl_B)
-    indsA = get_indexed_seg_IDs(tbl_A)
+    A_to_inds, inds_to_A = get_indexed_seg_IDs(tbl_A)
     preA, postA = edges_to_syn_dicts(tbl_A)
-    indsB = get_indexed_seg_IDs(tbl_B)
+    B_to_inds, inds_to_B = get_indexed_seg_IDs(tbl_B)
     preB, postB = edges_to_syn_dicts(tbl_B)
-    count_table = zeros(Int64, length(indsA)+1, length(indsB)+1)
+    count_table = zeros(Int64, length(A_to_inds)+1, length(B_to_inds)+1)
     for k in 1:size(synA_to_synB,1)
         synA, synB = synA_to_synB[k,:]
         for (segA,segB) in [(preA,preB), (postA,postB)]
             if synA > 0
-                i = indsA[segA[synA]] + 1
+                i = A_to_inds[segA[synA]] + 1
             else
                 i = 1
             end
             if synB > 0
-                j = indsB[segB[synB]] + 1
+                j = B_to_inds[segB[synB]] + 1
             else
                 j = 1
             end
             count_table[i,j] += 1
         end
     end
-    return count_table    
-end
-
-"""
-Run the T&E team MATLAB function on the count table
-"""
-function compute_nri(count_table)
-    check_MATLAB()
-    put_variable(s1, :x, count_table)
-    # return mxcall(:nri, 1, count_table)
-    eval_string(s1, "[n, nN, roc] = nri(double(x));")
-    return jscalar(get_mvariable(s1, :n)), jvector(get_mvariable(s1, :nN))
-end
-
-function compute_nri( table1::Array, table2::Array )
-  count_table = build_count_table(table1, table2)
-  compute_nri(count_table)
-end
-
-function compute_nri( fname1::AbstractString, fname2::AbstractString )
-  table1, table2 = load_edges(fname1), load_edges(fname2)
-  compute_nri(table1, table2)
+    return count_table, A_to_inds, B_to_inds
 end
 
 """
@@ -230,32 +161,4 @@ function add_synapse(count_table, seg_pair)
         count_table[1,j] += 1
     end
     return count_table
-end
-
-function merge_sensitivity(count_table, n)
-    f1 = []
-    c = count_table
-    for k=1:n
-        sz = size(c)
-        i = rand(2:sz[2])
-        j = rand(2:sz[2])
-        # println((sz, (i,j)))
-        c = merge_columns(c, i, j);
-        push!(f1, compute_nri(c))
-   end
-   return f1, c
-end
-
-function split_sensitivity(count_table, n)
-    f1 = []
-    c = count_table
-    for k=1:n
-        # always pick a neuron with more than 2 synapses to split
-        gt_one = collect(2:size(c,2))[sum(c[:,2:end],1) .> 1]
-        j = rand(gt_one)
-        c = split_column(c, j);
-        push!(f1, compute_nri(c))
-        # println(f1[end])
-   end
-   return f1, c
 end

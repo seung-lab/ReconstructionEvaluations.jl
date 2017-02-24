@@ -40,6 +40,9 @@ function reweight_adj!(adj)
     end 
 end
 
+"""
+Augment seg_list with frequency of seg id & class as dendrite or axon (2 or 3)
+"""
 function quantify_pre_post(seg_list, edges)
     segs = hcat(edges[:,2]...)'
     pre = segs[:,1]
@@ -142,21 +145,6 @@ function create_post_pre_syn_dicts(syn_to_segs::Dict)
 end
 
 """
-Create index lookup dictionaries for a list of values
-
-Note: used to help create adjacency matrix
-"""
-function create_index_dict(list)
-    v_to_index = Dict()
-    index_to_v = Dict()
-    for (ind, v) in enumerate(list)
-        v_to_index[v] = ind
-        index_to_v[ind] = v
-    end
-    return v_to_index, index_to_v
-end
-
-"""
 Create (sparse) adjacency matrix with normalized synapse size as weight
 """
 function create_adjacency_matrix(seg_to_index, syn_to_segs, syn_size)
@@ -245,52 +233,7 @@ function view_order(adj, order=collect(1:size(adj,1)))
 end
 
 """
-Load sparse matrix from file with format i, j, v
-"""
-function read_sparse(fn)
-    d = readdlm(fn)
-    n = Int64(maximum(d[:,1]))
-    m = Int64(maximum(d[:,2]))
-    S = spzeros(n,m)
-    for i in 1:size(d,1)
-        S[Int64(d[i,1]), Int64(d[i,2])] = d[i,3]
-    end
-    return S
-end
-
-"""
-Write sparse matrix to file with format i, j, v
-"""
-function write_sparse(fn, arr)
-    r = []
-    c = []
-    v = []
-    rows = rowvals(arr)
-    vals = nonzeros(arr)
-    n = size(arr,1)
-    for j in 1:n
-        for i in nzrange(arr, j)
-            push!(r, rows[i])
-            push!(c, j)
-            push!(v, vals[i])
-        end
-    end
-    if length(nzrange(arr, n)) == 0
-        push!(r, n)
-        push!(c, n)
-        push!(v, 0)
-    end
-    if !(n in rows)
-        push!(r, n)
-        push!(c, n)
-        push!(v, 0)
-    end
-
-    writedlm(fn, hcat(r,c,v))
-end
-
-"""
-
+Count the elements in each cluster
 """
 function count_clusters(cluster)
     cluster_ids = sort(unique(cluster))
