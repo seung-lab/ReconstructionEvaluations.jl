@@ -1,4 +1,4 @@
-import Base: +, -, *, /, &, min, max, norm, size, collect
+import Base: +, -, *, /, &, min, max, norm, size, collect, round
 
 immutable Vec3
 	x::Float64
@@ -16,6 +16,7 @@ typealias Point3 Vec3
 
 norm(p::Vec3) = norm([p.x, p.y, p.z])
 collect(p::Vec3) = [p.x, p.y, p.z]
+round(p::Vec3) = Vec3(round(p.x), round(p.y), round(p.z))
 
 immutable BoundingCube
 	xmin::Float64

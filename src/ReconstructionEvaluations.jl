@@ -1,10 +1,11 @@
-module ReconstructionEvaluations
+# module ReconstructionEvaluations
 
 using MATLAB
 using HDF5
 using StatsBase
 using PyPlot
 using Graphics
+using FastConv
 
 plt[:style][:use]("ggplot")
 
@@ -40,4 +41,4 @@ include("eval/include.jl")
 include("analysis/include.jl")
 include("experiments/experiments.jl")
 
-end
+# end
