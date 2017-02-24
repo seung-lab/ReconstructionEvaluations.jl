@@ -1,12 +1,12 @@
 #!/usr/bin/env julia
 
-module Drivers
+# module Drivers
 
-import ReconstructionEvaluations
-import ReconstructionEvaluations.Cron.Synaptor
-import ReconstructionEvaluations.io
+# import ReconstructionEvaluations
+# import ReconstructionEvaluations.Cron.Synaptor
+# import ReconstructionEvaluations.io
 
-const RE = ReconstructionEvaluations
+# const = ReconstructionEvaluations
 
 
 function run_synaptor_cfg( cfg, output_prefix, dist_thr, res,
@@ -39,9 +39,9 @@ function h5_file_om( seg1fname, seg2fname, chunk_shape, verb=true )
   seg1 = io.read_h5(seg1fname, false)
   seg2 = io.read_h5(seg2fname, false)
 
-  impl_om = RE.overlap_in_chunks(seg1, seg2, chunk_shape, verb)
+  impl_om = overlap_in_chunks(seg1, seg2, chunk_shape, verb)
 
-  RE.om_from_impl(impl_om)
+  om_from_impl(impl_om)
 end
 
 
@@ -77,4 +77,4 @@ end
 
 
 
-end#module end
+# end#module end

@@ -125,7 +125,7 @@ function (*)(bc::BoundingCube, s::Real)
 end
 (*)(s::Real, bc::BoundingCube) = bc*s
 
-isinside(bc::BoundingCube, x, y, z) = (bc.xmin <= x <= bc.xmax) && 
+is_inside(bc::BoundingCube, x, y, z) = (bc.xmin <= x <= bc.xmax) && 
                                         (bc.ymin <= y <= bc.ymax) &&
                                             (bc.zmin <= z <= bc.zmax)
-isinside(bc::BoundingCube, p::Point3) = isinside(bc, p.x, p.y, p.z)
+is_inside(bc::BoundingCube, p::Point3) = is_inside(bc, p.x, p.y, p.z)

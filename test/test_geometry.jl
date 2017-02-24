@@ -56,6 +56,6 @@ BCT_4 = BoundingCube(2, 8, 2, 8, 2, 8)
 @test BCT_1 * 3 == BoundingCube(1, 4, 3, 6, 5, 8)
 
 #### isinside()
-@test isinside(BCT_1, Point3(2.5, 4.5, 6.5))
-@test isinside(BCT_1, Point3(2, 4, 6))
-@test isinside(BCT_1, Point3(1, 3, 5)) == false
+@test is_inside(BCT_1, Point3(2.5, 4.5, 6.5))
+@test is_inside(BCT_1, Point3(2, 4, 6))
+@test is_inside(BCT_1, Point3(1, 3, 5)) == false

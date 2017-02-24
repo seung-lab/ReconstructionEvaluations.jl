@@ -56,3 +56,29 @@ function plot_sphere(ctr, r, n=10, alpha=0.02)
     z = r*ones(size(u,1))*cos(v)' + ctr[3]
     plot_surface(x,y,z, alpha=alpha, shade=true, linewidth=0)
 end;
+
+"""
+Visualize NRI breakdowns per segment for TP, FP, FN
+"""
+function plot_NRI(nN, roc)
+    function hist_nan(a)
+        b = a[a .> 0]
+        plt[:hist](b, bins=20);
+        ax = gca()
+        ax[:set_yscale]("log")
+    end
+    
+    fig = figure()
+    subplot(221)
+    hist_nan(nN)
+    title("per seg NRI")
+    subplot(222)
+    hist_nan(roc["TP"])
+    title("per seg TP")
+    subplot(223)
+    hist_nan(roc["FP"])
+    title("per seg FP")
+    subplot(224)
+    hist_nan(roc["FN"])
+    title("per seg FN")
+end

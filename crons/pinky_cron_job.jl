@@ -1,9 +1,11 @@
 #!/usr/bin/env julia
 
-import ReconstructionEvaluations
-import ReconstructionEvaluations.Cron.Synaptor
-import ReconstructionEvaluations.Cron.Drivers
-const RE = ReconstructionEvaluations
+# import ReconstructionEvaluations
+# import ReconstructionEvaluations.Cron.Synaptor
+# import ReconstructionEvaluations.Cron.Drivers
+# const = ReconstructionEvaluations
+
+include("../src/ReconstructionEvaluations.jl");
 
 
 using HDF5
@@ -35,7 +37,7 @@ println("RUNNING SYNAPTOR POSTPROCESSING")
 
 cfg = Synaptor.make_gc_cfg(seg_fname, output_prefix)
 
-edge_fname = Drivers.run_synaptor_cfg( cfg, output_prefix, dist_thr, res )
+edge_fname = run_synaptor_cfg( cfg, output_prefix, dist_thr, res )
 edge_fname = "$(output_prefix)_edges_cons.csv"
 
 #==
@@ -44,7 +46,7 @@ Computing NRI score
 println("")
 println("COMPUTING NRI")
 
-@time full_nri, seg_nris = RE.compute_nri( edge_fname, gt_edges )
+@time full_nri, seg_nris, row_segs, col_segs = compute_nri(edge_fname, gt_edges)
 
 
 h5write( score_h5, "NRI", full_nri )
@@ -60,11 +62,11 @@ asplits_fname = "$(output_prefix)_axon_splits.csv"
 dsplits_fname = "$(output_prefix)_dend_splits.csv"
 mergers_fname = "$(output_prefix)_mergers.csv"
 
-@time om = Drivers.h5_file_om( gt_seg, seg_fname, overlap_chunk_shape )
-@time splits, mergers = Drivers.splits_and_mergers(om)
+@time om = h5_file_om( gt_seg, seg_fname, overlap_chunk_shape )
+@time splits, mergers = splits_and_mergers(om)
 
 
-semmap = RE.load_semmap( gt_semmap )
+semmap = load_semmap( gt_semmap )
 axon_splits = filter( (k,v) -> semmap[k] == 2, splits )
 dend_splits = filter( (k,v) -> semmap[k] == 3, splits )
 
@@ -74,9 +76,9 @@ num_dend_splits  = [ length(v) for v in values(dend_splits) ]
 num_mergers = [ length(v) for v in values(mergers) ]
 
 
-RE.write_map_file( asplits_fname, axon_splits )
-RE.write_map_file( dsplits_fname, dend_splits )
-RE.write_map_file( mergers_fname, mergers )
+write_map_file( asplits_fname, axon_splits )
+write_map_file( dsplits_fname, dend_splits )
+write_map_file( mergers_fname, mergers )
 
 h5write( score_h5, "num_axon_splits", num_axon_splits )
 h5write( score_h5, "num_dend_splits", num_dend_splits )
