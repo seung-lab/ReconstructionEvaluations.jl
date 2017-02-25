@@ -96,3 +96,59 @@ function load_and_filter_edges(proofread_edges::Array, raw_edges::Array, filter_
                                                                             rand_zmin, rand_zmin+filter_px[3])
     return filter_edges(rand_bc, raw_edges), filter_edges(rand_bc, proofread_edges)
 end
+
+"""
+Make a dense 3D mask of locations, scaled accordingly
+
+Input:
+    list of coordinates (like edges[:,3])
+    scale: 3-element array with scaling in each dimension
+
+Output:
+    3D dense Float32 matrix
+    origin of the dense matrix
+"""
+function make_3D_mask(coords, scale=[1,1,1])
+    pts = [Vec3(c.*scale...) for c in coords]
+    bc = BoundingCube(pts...)
+    vol = zeros(Float32, collect(map(Int64, map(round, size(bc)))) + 2 ...)
+    origin = round(min(bc))
+    for pt in pts
+        vol[map(Int64, collect(round(pt) - origin) + 1)...] = 1
+    end
+    return vol, origin
+end
+
+function make_3D_mask(coords, scale=[1,1,1], sz=[160,145,145])
+    pts = [Vec3(c.*scale...) for c in coords]
+    bc = BoundingCube(pts...)
+    vol = zeros(Float32, sz...)
+    origin = Vec3(281.0,274.0,1280.0)
+    for pt in pts
+        vol[map(Int64, collect(round(pt) - origin) + 1)...] = 1
+    end
+    return vol, origin
+end
+
+"""
+Create symmetric 3d gaussian, of only odd size dimension n
+"""
+function create_3d_gaussian(n, sigma, T=Float32)
+    if n%2 == 0
+        n += 1
+    end
+    g = zeros(T, n,n,n)
+    m = T(n)
+    s = [m/2, m/2, m/2]
+    A = eye(T, 3)*sigma
+    den = sqrt(det(2*pi*A))
+    for i in 1:n
+        for j in 1:n
+            for k in 1:n
+                x = [i,j,k]
+                g[x...] = 1/den*exp(-0.5*(x-s)'*A^-1*(x-s))[1]
+            end
+        end
+    end
+    return g
+end
