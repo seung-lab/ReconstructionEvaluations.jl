@@ -152,17 +152,17 @@ Input:
     post_to_syn: dict of post seg id to list of synapses
 
 Output:
-    Nx3 array of seg_id, no of pre synapses, no of post synapses
+    Dict of seg_id, no of pre synapses, no of post synapses
 """
 function count_segs_both_pre_and_post(pre_to_syn, post_to_syn)
-    pre_post = []
+    pre_post = Dict()
     post = keys(post_to_syn)
     for k in keys(pre_to_syn)
         if k in post
-            push!(pre_post, [k, length(pre_to_syn[k]), length(post_to_syn[k])])
+            pre_post[k] = [length(pre_to_syn[k]), length(post_to_syn[k])])
         end
     end
-    return hcat(pre_post...)'
+    return pre_post
 end
 
 """
