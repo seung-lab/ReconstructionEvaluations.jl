@@ -145,6 +145,27 @@ function create_post_pre_syn_dicts(syn_to_segs::Dict)
 end
 
 """
+Count segments that are both pre & post
+
+Input:
+    pre_to_syn: dict of pre seg id to list of synapses
+    post_to_syn: dict of post seg id to list of synapses
+
+Output:
+    Nx3 array of seg_id, no of pre synapses, no of post synapses
+"""
+function count_segs_both_pre_and_post(pre_to_syn, post_to_syn)
+    pre_post = []
+    post = keys(post_to_syn)
+    for k in keys(pre_to_syn)
+        if k in post
+            push!(pre_post, [k, length(pre_to_syn[k]), length(post_to_syn[k])])
+        end
+    end
+    return hcat(pre_post...)'
+end
+
+"""
 Create (sparse) adjacency matrix with normalized synapse size as weight
 """
 function create_adjacency_matrix(seg_to_index, syn_to_segs, syn_size)
