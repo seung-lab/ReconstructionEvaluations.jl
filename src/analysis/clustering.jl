@@ -154,12 +154,47 @@ Input:
 Output:
     Dict of seg_id, no of pre synapses, no of post synapses
 """
-function count_segs_both_pre_and_post(pre_to_syn, post_to_syn)
+function count_segs_both_pre_and_post(pre_to_syn::Dict, post_to_syn::Dict)
     pre_post = Dict()
     post = keys(post_to_syn)
     for k in keys(pre_to_syn)
         if k in post
-            pre_post[k] = [length(pre_to_syn[k]), length(post_to_syn[k])])
+            pre_post[k] = [length(pre_to_syn[k]), length(post_to_syn[k])]
+        end
+    end
+    return pre_post
+end
+
+"""
+Count segments that are both pre & post
+
+Input:
+    edges: N-element list of 2-element arrays with pre, post seg pairs as edges
+
+Output:
+    Dict of seg_id, no of pre synapses, no of post synapses
+"""
+function count_segs_both_pre_and_post(edges::Array)
+    segs = hcat(edges...)
+    pre = segs[1,:]
+    post = segs[2,:]
+    pre_post = Dict()
+    for i in 1:size(segs,2)
+        pre = segs[1,i]
+        post = segs[2,i]
+        if haskey(pre_post, pre)
+            pre_post[pre][1] += 1
+        else
+            if pre in segs[2,i:end]
+                pre_post[pre] = [1, 0]
+            end
+        end
+        if haskey(pre_post, post)
+            pre_post[post][2] += 1
+        else
+            if post in segs[1,i:end]
+                pre_post[post] = [0, 1]
+            end
         end
     end
     return pre_post

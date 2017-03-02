@@ -152,3 +152,34 @@ function create_3d_gaussian(n, sigma, T=Float32)
     end
     return g
 end
+
+"""
+Create mask of rows in edges based on:
+ (1) the presynaptic edge is not merged
+ (2) the merged postsynaptic edge is not merged or has more than n synapses
+
+Input:
+    edges: Nx4 array from load_edges
+    pre_post: dict of pre_post seg ids to pre synapse & post synapse counts
+    post_only_count: scalar for synapse threshold that merged post targets
+     must meet
+
+Output:
+    N-element bit mask for rows of the edges that meet the above criteria
+"""
+function create_prepost_edge_mask(edges, pre_post, post_only_count)
+    edge_prepost_filter = falses(size(edges,1));
+    post_only_count = 10
+    for i in 1:size(edges,1)
+        pre = edges[i,2][1]
+        post = edges[i,2][2]
+        if !(haskey(pre_post, pre)) & haskey(pre_post, post)
+            if (pre_post[post][2] >= post_only_count)
+                edge_prepost_filter[i] = true
+            end
+        elseif !(haskey(pre_post, pre)) & !(haskey(pre_post, post))
+            edge_prepost_filter[i] = true
+        end
+    end
+    return edge_prepost_filter
+end
