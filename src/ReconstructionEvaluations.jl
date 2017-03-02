@@ -1,4 +1,4 @@
-# module ReconstructionEvaluations
+module ReconstructionEvaluations
 
 using MATLAB
 using HDF5
@@ -7,7 +7,7 @@ using PyPlot
 using Graphics
 using FastConv
 
-plt[:style][:use]("ggplot")
+#plt[:style][:use]("ggplot")
 
 export 
     load_edges,
@@ -23,6 +23,7 @@ export
     add_synapse,
     merge_sensitivity,
     split_sensitivity,
+    NRI,
     #synapse recovery estimates
     find_trunk_mapping, synapse_recovery,
     Vec3, Point3, BoundingCube,
@@ -41,4 +42,4 @@ include("eval/include.jl")
 include("analysis/include.jl")
 include("experiments/experiments.jl")
 
-# end
+end

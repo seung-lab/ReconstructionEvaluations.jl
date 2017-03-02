@@ -20,13 +20,30 @@ function nri( om::SparseMatrixCSC; correct=true )
   NRI = nri( TP, FP, FN )
   segNRI = nri( segTP, segFP, segFN )
 
+  segNRIw = nri_weight( segTP, segFP, segFN )
 
-  NRI, segNRI, segTP, segFP, segFN
+  NRI, segNRI, segNRIw
 end
 
 
 function nri( om::Array; correct=true )
   nri( sparse(om); correct=correct )
+end
+
+
+function nri( TP, FP, FN )
+  2*TP ./ (2*TP + FP + FN)
+end
+
+
+function nri( TP::SparseVector, FP::SparseVector, FN::SparseVector )
+
+  inds = find(TP);
+  res = sparsevec(Int[],Float64[],length(TP))
+
+  for i in inds res[i] = (2*TP[i]) / (2*TP[i] + FP[i] + FN[i]) end
+
+  res
 end
 
 
@@ -146,10 +163,26 @@ function compute_FNs( om, offset=true )
 end
 
 
-function nri( TP, FP, FN )
-  2*TP ./ (2*TP + FP + FN)
-end
+"""
 
+    nri_weight( segTP, segFP, segFN )
+
+Finds the weight for each segment s.t. the full network
+NRI is a weighted sum of each individual NRI values. This value
+is equal to the sum of "positives" (TP+FP) and "negatives" (TP+FN)
+for each segment.
+"""
+function nri_weight( segTP, segFP, segFN )
+
+  total_weight = 2*sum(segTP) + sum(segFP) + sum(segFN)
+
+  is = find(segTP)
+  res = sparsevec(Int[],Float64[],length(segTP))
+
+  for i in is res[i] = (2*segTP[i] + segFP[i] + segFN[i]) / total_weight end
+
+  res
+end
 
 #Utility fns
 choosetwo(x) = x * ((x-1)/2)
