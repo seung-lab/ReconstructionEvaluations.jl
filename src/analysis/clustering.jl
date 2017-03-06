@@ -72,23 +72,36 @@ Inputs:
     filter_ids: list of segment IDs that should be included
 """
 function create_graph_dicts(edges, filter_ids)
+    
+    function push_dict!(d, k, v)
+        if !haskey(d, k)
+            d[k] = Array{Int64,1}
+        end
+        push!(d[k], v)
+    end
+
     syn_to_segs = Dict()
     segs_to_syn = Dict()
+    seg_to_syn = Dict()
     syn_coords = Dict()
     syn_size = Dict()
+    pre_to_post = Dict()
+    post_to_pre = Dict()
     for i in 1:size(edges,1)
         if edges[i,2][1] in filter_ids && edges[i,2][2] in filter_ids
             syn_to_segs[edges[i,1]] = edges[i,2]
             syn_coords[edges[i,1]]  = edges[i,3]
             syn_size[edges[i,1]]    = edges[i,4]
-            if !haskey(segs_to_syn, edges[i,2])
-                segs_to_syn[edges[i,2]] = Array{Int64,1}()
+            push_dict!(segs_to_syn, edges[i,2], edges[i,1])
+            for e in edges[i,2]
+                push_dict!(seg_to_syn, e, edges[i,1])
             end
-            push!(segs_to_syn[edges[i,2]], edges[i,1])
+            push_dict!(pre_to_post, edges[i,2][1], edges[i,2][2])
+            push_dict!(post_to_pre, edges[i,2][2], edges[i,2][1])
         end
     end
 
-    return syn_to_segs, segs_to_syn, syn_coords, syn_size
+    return syn_to_segs, segs_to_syn, syn_coords, syn_size, seg_to_syn, pre_to_post, post_to_pre
 end
 
 """

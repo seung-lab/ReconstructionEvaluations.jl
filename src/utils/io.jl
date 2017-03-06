@@ -56,5 +56,26 @@ function write_map_file( output_fname, dicts... )
 
 end
 
+"""
+Filter edges & save in easy python format with flat arrays
+
+Inputs:
+  fn: filename to write to
+  edges: mixed array (list of lists)
+  filter_ids: list of segment ids to include
+
+Output:
+  file with all lists expanded
+
+"""
+function python_write_edges(fn, edges, filter_ids)
+  e = []
+  for i in 1:size(edges,1)
+    if edges[i,2][1] in filter_ids && edges[i,2][2] in filter_ids
+      push!(e, [edges[i,1], edges[i,2]..., edges[i,3]..., edges[i,4]])
+    end
+  end
+  writedlm(fn, hcat(e...)', ",")
+end
 
 end #module end
