@@ -6,7 +6,7 @@
 
 [![codecov.io](http://codecov.io/github/seung-lab/ReconstructionEvaluations.jl/coverage.svg?branch=master)](http://codecov.io/github/seung-lab/ReconstructionEvaluations.jl?branch=master)
 
-Package to evaluate neuronal reconstructions from electron micrographs. Uses the NRI MATLAB method provided by the iARPA T&E team (`nri.m`).
+Package to evaluate neuronal reconstructions from electron micrographs.
 
 ## Requires
 ```
@@ -26,6 +26,6 @@ corr_fn = joinpath(dir, "corrected_cons_edges.csv")
 uncorr_fn = joinpath(dir, "uncorr_cons_edges.csv")
 ground_truth = load_edges(corr_fn)
 reconstruction = load_edges(uncorr_fn)
-count_table = build_count_table(ground_truth, reconstruction)
+count_table, corr_to_inds, uncorr_to_inds = build_count_table(ground_truth, reconstruction)
 compute_nri(count_table)
 ```
