@@ -39,6 +39,13 @@ function read_h5( fname, read_whole_dset=true, h5_dset_name="/main" )
   d
 end
 
+
+function write_h5( dset, fname, dset_name="/main" )
+  if isfile(fname) rm(fname) end
+  HDF5.h5write(fname, dset_name, dset)
+end
+
+
 function write_map_file( output_fname, dicts... )
 
   open(output_fname, "w+") do f

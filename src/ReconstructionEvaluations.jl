@@ -40,6 +40,7 @@ export
 include("utils/include.jl")
 include("eval/include.jl")
 include("analysis/include.jl")
+include("CronUtils/include.jl")
 include("experiments/experiments.jl")
 
 end

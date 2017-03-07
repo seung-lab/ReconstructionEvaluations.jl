@@ -1,3 +1,3 @@
-[submodule "src/eval/Synaptor"]
-	path = src/eval/Cron/Synaptor
+[submodule "src/CronUtils/Synaptor"]
+	path = src/CronUtils/Synaptor
 	url = https://github.com/nicholasturner1/Synaptor.git

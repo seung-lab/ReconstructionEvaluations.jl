@@ -1,16 +1,30 @@
 #!/usr/bin/env julia
 
-# module Drivers
+module Drivers
 
-# import ReconstructionEvaluations
-# import ReconstructionEvaluations.Cron.Synaptor
-# import ReconstructionEvaluations.io
+using ...ReconstructionEvaluations
+using ..Synaptor
+using ...ReconstructionEvaluations.io
 
-# const = ReconstructionEvaluations
+const RE = ReconstructionEvaluations
 
 
+"""
+
+    run_synaptor_cfg( cfg, output_prefix, dist_thr, res,
+                      keep_seg=false, keep_mapping=false )
+
+Runs Synaptor postprocessing using a passed configuration filename. Also performs
+duplicate removal within the passed distance threshold (dist_thr), assuming a voxel
+resolution (res).
+
+keep_seg and keep_mapping flags determine whether to keep these products
+of the Synaptor postprocessing
+"""
 function run_synaptor_cfg( cfg, output_prefix, dist_thr, res,
   keep_seg=false, keep_mapping=false )
+
+  @assert isfile(cfg)
 
   Synaptor.run_cfg_file(cfg)
 
@@ -39,9 +53,9 @@ function h5_file_om( seg1fname, seg2fname, chunk_shape, verb=true )
   seg1 = io.read_h5(seg1fname, false)
   seg2 = io.read_h5(seg2fname, false)
 
-  impl_om = overlap_in_chunks(seg1, seg2, chunk_shape, verb)
+  impl_om = RE.overlap_in_chunks(seg1, seg2, chunk_shape, verb)
 
-  om_from_impl(impl_om)
+  RE.om_from_impl(impl_om)
 end
 
 
@@ -76,5 +90,4 @@ function splits_and_mergers( om )
 end
 
 
-
-# end#module end
+end#module end
