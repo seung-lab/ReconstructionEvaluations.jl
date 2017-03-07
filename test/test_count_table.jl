@@ -29,12 +29,20 @@ function test_get_indexed_seg_IDs()
 	tbl = Array{Any,2}(2,3);
 	tbl[1,:] = [1, [1,2], [1,1,1]]
 	tbl[2,:] = [5, [2,5], [1,2,1]]	
-	seg_indices = get_indexed_seg_IDs(tbl)
-	@test length(seg_indices) == 3
-	@test seg_indices[1] == 1
-	@test seg_indices[2] == 2
-	@test seg_indices[5] == 3
-	@test !haskey(seg_indices, 3)
+	seg_to_index, index_to_seg = get_indexed_seg_IDs(tbl)
+	@test length(seg_to_index) == 3
+	@test seg_to_index[1] == 1
+	@test seg_to_index[2] == 2
+	@test seg_to_index[5] == 3
+	@test !haskey(seg_to_index, 3)
+
+	@test index_to_seg[1] == 1
+	@test index_to_seg[2] == 2
+	@test index_to_seg[3] == 5
+	seg_to_index, index_to_seg = get_indexed_seg_IDs(tbl, 1)
+	@test index_to_seg[2] == 1
+	@test index_to_seg[3] == 2
+	@test index_to_seg[4] == 5
 end
 
 function test_build_count_table()
@@ -44,7 +52,7 @@ function test_build_count_table()
 	tbl_A[2,:] = [5, [2,3], [1,2,1]]
 	tbl_B[1,:] = [10, [20,21], [1,1,1]]
 	tbl_B[2,:] = [1, [1,2], [1,1,5]]
-	count_table = build_count_table(tbl_A, tbl_B)
+	count_table, A_to_inds, B_to_inds = build_count_table(tbl_A, tbl_B)
 	@test size(count_table) == (3+1,4+1)
 	@test count_table[1,1] == 0
 	@test count_table[1,2] == 1
@@ -66,6 +74,7 @@ function test_build_count_table()
 	@test count_table[4,3] == 0
 	@test count_table[4,4] == 0
 	@test count_table[4,5] == 0
+	
 end
 
 function create_dummy_count_table()
@@ -81,7 +90,7 @@ function create_dummy_count_table()
 end
 
 function test_merge_columns()
-	count_table = create_dummy_count_table()
+	count_table, _, _ = create_dummy_count_table()
 	@test_throws AssertionError merge_columns(count_table, 1, 2)
 	@test_throws AssertionError merge_columns(count_table, 6, 2)
 	@test_throws AssertionError merge_columns(count_table, 2, 1)
@@ -95,7 +104,7 @@ function test_merge_columns()
 end
 
 function test_split_column()
-	count_table = create_dummy_count_table()
+	count_table, _, _ = create_dummy_count_table()
 	@test_throws AssertionError split_column(count_table, 1)
 	@test_throws AssertionError split_column(count_table, 6)
 	count_table = split_column(count_table, 4)
@@ -112,7 +121,7 @@ function test_split_column()
 end
 
 function test_remove_synapse()
-	count_table = create_dummy_count_table()
+	count_table, _, _ = create_dummy_count_table()
 	@test_throws AssertionError remove_synapse(count_table, (1,2), (2,3))
 	@test_throws AssertionError remove_synapse(count_table, (6,2), (2,3))
 	@test_throws AssertionError remove_synapse(count_table, (2,1), (2,3))
@@ -134,7 +143,7 @@ function test_remove_synapse()
 end
 
 function test_add_synapse()
-	count_table = create_dummy_count_table()
+	count_table, _, _ = create_dummy_count_table()
 	@test_throws AssertionError add_synapse(count_table, (1,2))
 	@test_throws AssertionError add_synapse(count_table, (6,2))
 	@test_throws AssertionError add_synapse(count_table, (2,1))

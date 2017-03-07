@@ -1,86 +1,193 @@
-"""
-Run the T&E team MATLAB function on the count table
+#!/usr/bin/env julia
 
-Input:
-    count_table: NxM array composed by build_count_table
+module NRI
 
-Output:
-    Volume-wide NRI
-    Array of segment specific NRIs (Mx1)
-"""
-function compute_nri(count_table)
-    check_MATLAB()
-    put_variable(s1, :x, count_table)
-    # return mxcall(:nri, 1, count_table)
-    eval_string(s1, "[n, nN, roc] = nri(double(x));")
-    return jscalar(get_mvariable(s1, :n)), jvector(get_mvariable(s1, :nN)), 
-                                                  jdict(get_mvariable(s1, :roc))
-end
 
 """
-Overload compute_nri for edge table inputs
 
-Input:
-  table1: reconstruction edge list
-  table2: ground truth edge list
+   nri( om::SparseMatrixCSC; correct=true )
 
-Output:
-    NRI outputs
-    count table: sparse matrix build according to function build_count_table
-    list of row segment ids sorted by index (matches output of per neuron NRI)
-    list of col segment ids sorted by index
+Implementation of the Neural Reconstruction Index. Incorporates
+the correction for false positive values if "correct" is true.
 """
-function compute_nri( table1::Array, table2::Array )
-  count_table, A_to_inds, B_to_inds = build_count_table(table1, table2)
-  return compute_nri(count_table), count_table,
-              sort_keys_by_val(A_to_inds), sort_keys_by_val(B_to_inds)
-end
+function nri( om::SparseMatrixCSC; correct=true )
 
-"""
-Overload compute_nri for edge table filename inputs
+  TP, segTP = compute_TPs( om )
+  FP, segFP = compute_FPs( om; correct=correct )
+  FN, segFN = compute_FNs( om )
 
-Input:
-  fname1: reconstruction edge list filename
-  fname2: ground truth edge list filename
   
-Output:
-  see compute_nri above
-"""
-function compute_nri( fname1::AbstractString, fname2::AbstractString )
-  table1, table2 = load_edges(fname1), load_edges(fname2)
-  return compute_nri(table1, table2)
+  NRI = nri( TP, FP, FN )
+  segNRI = nri( segTP, segFP, segFN )
+
+  segNRIw = nri_weight( segTP, segFP, segFN )
+
+  NRI, segNRI, segNRIw
 end
 
-"""
-Simulate n mergers on the count table
-"""
-function merge_sensitivity(count_table, n)
-    f1 = []
-    c = count_table
-    for k=1:n
-        sz = size(c)
-        i = rand(2:sz[2])
-        j = rand(2:sz[2])
-        # println((sz, (i,j)))
-        c = merge_columns(c, i, j);
-        push!(f1, compute_nri(c))
-   end
-   return f1, c
+
+function nri( om::Array; correct=true )
+  nri( sparse(om); correct=correct )
 end
 
-"""
-Simulate n splits on the count table
-"""
-function split_sensitivity(count_table, n)
-    f1 = []
-    c = count_table
-    for k=1:n
-        # always pick a neuron with more than 2 synapses to split
-        gt_one = collect(2:size(c,2))[sum(c[:,2:end],1) .> 1]
-        j = rand(gt_one)
-        c = split_column(c, j);
-        push!(f1, compute_nri(c))
-        # println(f1[end])
-   end
-   return f1, c
+
+function nri( TP, FP, FN )
+  2*TP ./ (2*TP + FP + FN)
 end
+
+
+function nri( TP::SparseVector, FP::SparseVector, FN::SparseVector )
+
+  inds = find(TP);
+  res = sparsevec(Int[],Float64[],length(TP))
+
+  for i in inds res[i] = (2*TP[i]) / (2*TP[i] + FP[i] + FN[i]) end
+
+  res
+end
+
+
+"""
+
+    compute_TPs( om, offset=true )
+
+Counts the number of true positive paths within each
+segment in a network specified by a sparse overlap matrix,
+and summarizes their total.
+
+Offset indicates whether segment ids are offset by 1 to include
+synapse "insertions" and deletions. This feature is not fully implemented
+yet.
+"""
+function compute_TPs( om, offset=true )
+  
+  rs, cs = findn(om); vs = nonzeros(om);
+
+  TPs = choosetwo(vs);
+  segTPs = sparsevec(Int[],Int[],size(om,1));
+
+  oT = one(eltype(rs)); 
+  for (r,c,tp) in zip(rs,cs,TPs)
+
+    if r == oT continue end
+    if c == oT continue end
+
+    segTPs[r] += tp
+  end
+  
+  sum(segTPs), segTPs
+end
+
+
+"""
+
+    compute_FPs( om, offset=true; correct=true )
+
+Counts the number of false positive paths within each
+segment in a network specified by a sparse overlap matrix,
+and summarizes their total.
+
+offset indicates whether segment ids are offset by 1 to include
+synapse "insertions" and deletions. This feature is not fully implemented
+yet.
+
+correct indicates whether to fully penalize false positives (unlike within
+the first draft of MATLAB nri code). The false setting is meant to be
+used as a comparison
+"""
+function compute_FPs( om, offset=true; correct=true )
+  
+  rs, cs = findn(om); vs = nonzeros(om);
+
+  sum_over_cols = sparsevec(Int[],Int[],size(om,2))
+  for (c,v) in zip(cs, vs) sum_over_cols[c] += v end
+
+  #needs to be a float to account for attributing
+  # mergers to gt segments
+  segFPs = sparsevec(Int[],Float64[],size(om,1))
+
+  oT = one(eltype(rs))
+  for (r,c,v) in zip(rs,cs,vs)
+
+    if c == oT continue end
+
+    other_count = sum_over_cols[c] - v
+    segFPs[r] += (v*other_count) / 2
+
+    #fully accounting for synapse insertions (if using the correct vers)
+    if r == oT && correct segFPs[r] += choosetwo(v) end
+  end
+
+  sum(segFPs), segFPs
+end
+
+
+"""
+
+    compute_FNs( om, offset=true )
+
+Counts the number of false negative paths within each
+segment in a network specified by a sparse overlap matrix,
+and summarizes their total.
+
+offset indicates whether segment ids are offset by 1 to include
+synapse "insertions" and deletions. This feature is not fully implemented
+yet.
+
+correct indicates whether to fully penalize false positives (unlike within
+the first draft of MATLAB nri code). The false setting is meant to be
+used as a comparison
+"""
+function compute_FNs( om, offset=true )
+  
+  rs, cs = findn(om); vs = nonzeros(om);
+
+  sum_over_rows = sparsevec(Int[],Int[],size(om,1))
+  for (r,v) in zip(rs, vs) sum_over_rows[r] += v end
+
+  segFNs = sparsevec(Int[],Float64[],size(om,1))
+
+  oT = one(eltype(rs))
+  for (r,c,v) in zip(rs,cs,vs)
+
+    if r == oT continue end
+
+    other_count = sum_over_rows[r] - v
+    segFNs[r] += (v*other_count) / 2
+
+    #accounting for synapse deletions
+    if c == oT segFNs[r] += choosetwo(v) end
+  end
+
+  sum(segFNs), segFNs
+end
+
+
+"""
+
+    nri_weight( segTP, segFP, segFN )
+
+Finds the weight for each segment s.t. the full network
+NRI is a weighted sum of each individual NRI values. This value
+is equal to the sum of "positives" (TP+FP) and "negatives" (TP+FN)
+for each segment.
+"""
+function nri_weight( segTP, segFP, segFN )
+
+  total_weight = 2*sum(segTP) + sum(segFP) + sum(segFN)
+
+  is = find(segTP)
+  res = sparsevec(Int[],Float64[],length(segTP))
+
+  for i in is res[i] = (2*segTP[i] + segFP[i] + segFN[i]) / total_weight end
+
+  res
+end
+
+#Utility fns
+choosetwo(x) = x * ((x-1)/2)
+choosetwo!(x) = for i in eachindex(x) x[i] *= (x[i]-1)/2 end
+choosetwo(x::Array) = [ v*((v-1)/2) for v in x ]
+
+
+end #module end

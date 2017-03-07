@@ -81,21 +81,21 @@ Output:
 """
 function build_count_table(tbl_A, tbl_B)
     synA_to_synB = map_synapses(tbl_A, tbl_B)
-    A_to_inds, inds_to_A = get_indexed_seg_IDs(tbl_A)
+    A_to_inds, inds_to_A = get_indexed_seg_IDs(tbl_A, 1)
     preA, postA = edges_to_syn_dicts(tbl_A)
-    B_to_inds, inds_to_B = get_indexed_seg_IDs(tbl_B)
+    B_to_inds, inds_to_B = get_indexed_seg_IDs(tbl_B, 1)
     preB, postB = edges_to_syn_dicts(tbl_B)
     count_table = zeros(Int64, length(A_to_inds)+1, length(B_to_inds)+1)
     for k in 1:size(synA_to_synB,1)
         synA, synB = synA_to_synB[k,:]
         for (segA,segB) in [(preA,preB), (postA,postB)]
             if synA > 0
-                i = A_to_inds[segA[synA]] + 1
+                i = A_to_inds[segA[synA]]
             else
                 i = 1
             end
             if synB > 0
-                j = B_to_inds[segB[synB]] + 1
+                j = B_to_inds[segB[synB]]
             else
                 j = 1
             end

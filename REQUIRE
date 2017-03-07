@@ -4,3 +4,6 @@ PyPlot
 HDF5
 Graphics
 StatsBase
+HttpServer
+WebSockets
+MbedTLS

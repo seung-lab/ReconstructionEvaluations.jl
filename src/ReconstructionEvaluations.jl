@@ -28,7 +28,7 @@ export
     find_trunk_mapping, synapse_recovery,
     Vec3, Point3, BoundingCube,
     # limits in world coordinates
-    isinside, xmin, xmax, ymin, ymax, zmin, zmax, center, 
+    is_inside, xmin, xmax, ymin, ymax, zmin, zmax, center, 
     xrange, yrange, zrange, shift, deform,
     width, height, depth,
     # clustering methods

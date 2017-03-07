@@ -18,12 +18,21 @@ end
 """
 Create index lookup dictionaries for a list of values
 
+Input:
+    list: list of elements
+    offset: integer offset for the index (like when building the count table)
+
+Output:
+    v_to_index: dict of value to index in list
+    index_to_v: dict of index in list to value
+
 Note: used to help create adjacency matrix
 """
-function create_index_dict(list)
+function create_index_dict(list, offset=0)
     v_to_index = Dict()
     index_to_v = Dict()
     for (ind, v) in enumerate(list)
+        ind += offset
         v_to_index[v] = ind
         index_to_v[ind] = v
     end
@@ -33,12 +42,16 @@ end
 """
 Create dict of all segment IDs contained within edge table & ranked index
 
+Input:
+    tbl: edge table (see load_edges)
+    offset: index offset for create_index_dict
+
 Output:
     Dict (k,v):(segment IDs, rank of segment ID in all segment IDs)
 """
-function get_indexed_seg_IDs(tbl)
+function get_indexed_seg_IDs(tbl, offset=0)
     ids = sort(unique(vcat(tbl[:,2]...)))
-    return create_index_dict(ids)
+    return create_index_dict(ids, offset)
 end
 
 """
