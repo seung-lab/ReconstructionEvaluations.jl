@@ -3,17 +3,20 @@ import Tkinter as tk
 # Create ui
 class UI(object):
     def __init__(self, next_segment_event, prev_segment_event, next_synapse_event, prev_synapse_event, synapse_classification_event):
-        self.create_info_labels(texts)
+        self.root = tk.Tk()
+
+        self.create_info_labels()
         self.create_buttons(next_segment_event, prev_segment_event, next_synapse_event, prev_synapse_event)
         #self.create_lists()
-        self.create_textbox(synapse_classification_event, next_synapse_event, prev_synapse_event)
+        self.classification_entry = self.create_textbox(synapse_classification_event, next_synapse_event, prev_synapse_event)
 
-    def create_info_labels(self, texts):
-        """Create and return handles to labels in root
-        Inputs:
-            texts: list of strings to attach to labels
-        """
-        labels = [tk.Label(self.root, text=text) for text in texts]
+    def start(self):
+        self.root.mainloop()
+
+    def create_info_labels(self):
+        """Create and return handles to labels in root"""
+        label_names = ['a', 'b', 'c', 'd', 'e']
+        labels = [tk.Label(self.root, text=text) for text in label_names]
         for l in labels:
             l.pack()
 
@@ -62,6 +65,8 @@ class UI(object):
         entry.bind("<Escape>", shutdown)
         entry.pack()
 
+        return entry
+
     # Fns to update ui
     def update_info_labels(self, labels, texts):
         """Update text and return handles to labels in root"""
@@ -70,6 +75,13 @@ class UI(object):
 
     def update_listboxes(self, segment_listbox, synapse_listbox):
         pass
+
+    # UI state information
+    def get_classification(self):
+        """Returns class entered by user in classification_entry widget"""
+        classification = self.classification_entry.get()
+        assert(classification in ['1','2','3'])
+        return classification
 
 # Testing
 class G:

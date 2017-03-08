@@ -27,6 +27,10 @@ class View(object):
         else:
             self.current_state['layers']['segmentation']['segments'] = [seg_id]
 
+    def clear_segments(self):
+        """Updates current_state to unselect all segments"""
+        self.current_state['layers']['segmentation']['segments'] = []
+
     def set_voxelCoordinates(self, new_pos):
         """Set the voxelCoordinates to the numpy list"""
         self.current_state['navigation']['pose']['position']['voxelCoordinates'] = new_pos
