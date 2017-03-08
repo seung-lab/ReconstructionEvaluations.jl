@@ -5,9 +5,7 @@ sys.path.append("/usr/people/kluther/Documents/ReconstructionEvaluations/src/neu
 import state
 
 class View(object):
-    """Contains state info and connections to neuroglancer. Also performs basic
-    state modifications"""
-
+    """Provides access to and functions to modify current_state"""
     @property
     def current_state(self):
         return state.current_state
@@ -29,13 +27,12 @@ class View(object):
         else:
             self.current_state['layers']['segmentation']['segments'] = [seg_id]
 
-
-    def show_synapse(self, coords):
-        """Updates state to center on synapse"""
-        self.set_voxelCoordinates(coords)
+    def set_voxelCoordinates(self, new_pos):
+        """Set the voxelCoordinates to the numpy list"""
+        self.current_state['navigation']['pose']['position']['voxelCoordinates'] = new_pos
 
     def show_synapses(self, coords, hold_on=False):
-        """Updates state to label all synapses corresponding to seg_id"""
+        """Updates state to label all synapse coords"""
         if hold_on:
             points = self.current_state['layers']['synapses']['points']
             points.extend(coords)
@@ -45,11 +42,12 @@ class View(object):
         else:
             self.current_state['layers']['synapses'] = {'type':'point', \
                                                             'points':coords}
-            self.show_synapse(coords[0])
+            self.set_voxelCoordinates(coords[0])
 
 
 #Testing
-v = View()
-import pdb; pdb.set_trace()
-import time; time.sleep(2)
-v.show_segment(2)
+if __name__=="__main__":
+    v = View()
+    import pdb; pdb.set_trace()
+    import time; time.sleep(2)
+    v.show_segment(2)
