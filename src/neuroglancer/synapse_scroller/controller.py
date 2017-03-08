@@ -53,25 +53,23 @@ class Controller:
 
     def ui_update(self):
         """Updates UI labels to reflect current state"""
-        pass
+        raise NotImplementedError
 
 
     def next_segment_event(self):
-        segment = self.model.next_segment()
-        self._show_segment(segment)
+        raise NotImplementedError
 
     def prev_segment_event(self):
-        segment = self.model.prev_segment()
-        self._show_segment(segment)
+        raise NotImplementedError
 
     def segment_select_event(evt):
-        print("seg selected")
+        raise NotImplementedError
 
     def synapse_select_event(evt):
-        print("syn selected")
+        raise NotImplementedError
 
     def shutdown(evt):
-        print("shutdown")
+        raise NotImplementedError
 
 
 # Test
