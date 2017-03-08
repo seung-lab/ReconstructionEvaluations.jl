@@ -17,8 +17,6 @@ class View(object):
     def show_segment(self, seg_id, hold_on=False):
         """Updates current_state to show a different segment"""
         print "show segment"
-        print "adding seg_id {0}".format(seg_id)
-        return
         if hold_on:
             if 'synapses' in self.current_state['layers']:
                 seg_ids = self.current_state['layers']['segmentation']['segments'];
@@ -31,14 +29,10 @@ class View(object):
 
     def clear_segments(self):
         """Updates current_state to unselect all segments"""
-        print "clearing segs"
-        return
         self.current_state['layers']['segmentation']['segments'] = []
 
     def set_voxelCoordinates(self, new_pos):
         """Set the voxelCoordinates to the numpy list"""
-        print "setting vxl"
-        return 
         self.current_state['navigation']['pose']['position']['voxelCoordinates'] = new_pos
 
     def show_synapses(self, coords, hold_on=False):
