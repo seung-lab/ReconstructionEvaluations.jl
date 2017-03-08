@@ -1,6 +1,6 @@
 from tornado import web, ioloop, httpserver
 from sockjs.tornado import SockJSConnection, SockJSRouter
-import json 
+import json
 from collections import OrderedDict
 import numpy as np
 import Tkinter as tk
@@ -14,7 +14,7 @@ class Connection(SockJSConnection):
         parameters and cookies associated with this request"""
         # When new client comes in, will add it to the clients list
         clients.add(self)
-       
+
     def on_message(self, json_state):
         """
         This will call initialize_state or on_state_change depening on if it is
@@ -31,7 +31,7 @@ class Connection(SockJSConnection):
         n_messages += 1
         if new_state: #if you return a new state send it back
             self.broadcast(clients, json.dumps(new_state))
-        
+
     def on_close(self):
         # If client disconnects, remove him from the clients list
         clients.remove(self)
@@ -62,7 +62,7 @@ class Connection(SockJSConnection):
         state['navigation']['pose']['position']['voxelCoordinates'] = (points-offset).tolist()
         state['navigation']['pose']['position']['zoomFactor'] = 1.0
         print(state)
-        return state         
+        return state
 
 # In order for the webbrowser to connect to this server
 # add to the url 'stateURL':'http://localhost:9999'
@@ -104,7 +104,7 @@ def key(event):
 
     if event.keysym == 'Down':
         print( 'Down' )
-      
+
 
 root = tk.Tk()
 print( "Press a key (Escape key to exit):" )

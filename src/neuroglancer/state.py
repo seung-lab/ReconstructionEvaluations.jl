@@ -3,7 +3,7 @@ from os.path import expanduser, join
 import threading
 from tornado import web, ioloop, httpserver
 from sockjs.tornado import SockJSConnection, SockJSRouter
-import json 
+import json
 from collections import OrderedDict
 import numpy as np
 import Tkinter as tk
@@ -11,15 +11,22 @@ import edges
 
 clients = set()
 n_messages = 0
+global current_state
 current_state = None
 receiving_message = False
 home_dir = expanduser("~")
-data_dir = join(home_dir, "seungmount/research/tommy/s1/data")
+#data_dir = join(home_dir, ``"seungmount/research/tommy/s1/data")
+#edges_fn = join(data_dir, "170303_tm_synapse_semantics_filtered_edges.csv")
+#data_dir = join(home_dir, "Documents/Research/SeungLab/data/ReconstructionEvaluations")
+#edges_fn = join(data_dir, "test_edges.csv")
+data_dir = join(home_dir, "/usr/people/kluther/Documents/data/ReconstructionEvaluations")
 edges_fn = join(data_dir, "170303_tm_synapse_semantics_filtered_edges.csv")
+
+
 edge_dicts = edges.create_edge_dicts(edges.load_edges(edges_fn))
 syn_to_segs = edge_dicts[0]
 segs_to_syn = edge_dicts[1]
-syn_coords = edges.transform_coords(edge_dicts[2], 
+syn_coords = edges.transform_coords(edge_dicts[2],
                     offset=-np.array([17409,16385,16385]))
 syn_size = edge_dicts[3]
 seg_to_syn = edge_dicts[4]
@@ -33,7 +40,7 @@ class Connection(SockJSConnection):
         parameters and cookies associated with this request"""
         # When new client comes in, will add it to the clients list
         clients.add(self)
-       
+
     def on_message(self, json_state):
         """
         This will call initialize_state or on_state_change depening on if it is
@@ -55,7 +62,7 @@ class Connection(SockJSConnection):
             receiving_message = False
             broadcast()
 
-        
+
     def on_close(self):
         # If client disconnects, remove him from the clients list
         clients.remove(self)
@@ -81,7 +88,7 @@ class Connection(SockJSConnection):
         (except the very first time).
         """
         # store position
-        return state         
+        return state
 
 # In order for the webbrowser to connect to this server
 # add to the url 'stateURL':'http://localhost:9999'
@@ -112,7 +119,7 @@ class TornadoThread(threading.Thread):
         http_server.bind(9999) #port
         print("starting server")
         http_server.start(1)
-    
+
     def run(self):
         print("IOLoop starting")
         ioloop.IOLoop.instance().start()
@@ -207,13 +214,15 @@ def update_voxelCoordinates(change_vector):
     global current_state
     vc = current_state['navigation']['pose']['position']['voxelCoordinates']
     new_vc = (np.array(vc) + change_vector).tolist()
-    current_state['navigation']['pose']['position']['voxelCoordinates'] = new_vc  
+    current_state['navigation']['pose']['position']['voxelCoordinates'] = new_vc
 
 def shutdown(event):
     root.destroy()
 
+"""
 print("setting up Tk")
 root = tk.Tk()
+
 tk.Label(root, text="segment ID").pack()
 entry = tk.Entry(root)
 entry.bind("<Return>", show_segment_event)
@@ -221,6 +230,22 @@ entry.bind("<Return>", show_segment_event)
 entry.bind("<KP_Enter>", show_neighbors_event)
 entry.bind("<Escape>", shutdown)
 entry.pack()
+
+#Add a button
+def next_segment_pressed():
+    print "next seg pressed"
+
+def prev_segment_pressed():
+    print "prev seg presed"
+
+b1 = tk.Button(root, text="next seg", command=next_segment_pressed)
+b1.grid(row=1, column=1)
+#b1.pack()
+
+b2 = tk.Button(root, text="prev seg", command=prev_segment_pressed)
+b2.grid(row=1, column=2)
+#b2.pack()
+
 # e.grid(row=0,column=1)
 # e.focus_set()
 # tk.Button(root, text="Enter", command=show_cluster(e.get())).grid(row=2, sticky=tk.W, pady=4)
@@ -231,3 +256,4 @@ print( "Use input text to display segment & synapses.\n \
 # don't show the tk window
 # root.withdraw()
 root.mainloop()
+"""
