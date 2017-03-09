@@ -77,3 +77,17 @@ def transform_coords(coords_dict, offset, s=np.array([1,1,1])):
         coords_dict[k] = (s*v + offset).tolist()
 
     return coords_dict
+
+def remap(map_dict, seg_list):
+    """Remap a list of segments (can be slice of larger numpy array)
+
+    Args:
+        map_dict: dict mapping old seg id to a new seg id
+        seg_list: slice of numpy array that will be overwritten
+
+    Returns:
+        seg_list will be modified with new seg ids
+    """
+    for x in np.nditer(seg_list, op_flags=['readwrite']):
+        # not in map, object maps to itself
+        x[...] = map_dict[int(x)]
