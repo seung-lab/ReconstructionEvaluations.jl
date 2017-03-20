@@ -39,8 +39,8 @@ println("RUNNING SYNAPTOR POSTPROCESSING")
 
 cfg = Synaptor.make_gc_cfg(seg_fname, output_prefix)
 
-#edge_fname = Drivers.run_synaptor_cfg( cfg, output_prefix, dist_thr, res )
-edge_fname = "/usr/people/nturner/seungmount/research/metric_cronbot/pinky/pinky_cron_02_03_2017_edges_cons.csv"
+edge_fname = Drivers.run_synaptor_cfg( cfg, output_prefix, dist_thr, res )
+#edge_fname = "/usr/people/nturner/seungmount/research/metric_cronbot/pinky/pinky_cron_02_03_2017_edges_cons.csv"
 
 
 #==
