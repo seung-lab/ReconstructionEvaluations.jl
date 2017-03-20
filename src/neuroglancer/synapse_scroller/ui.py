@@ -2,13 +2,24 @@ import Tkinter as tk
 
 # Create ui
 class UI(object):
-    def __init__(self, next_segment_event, prev_segment_event, next_synapse_event, prev_synapse_event, synapse_classification_event):
+    def __init__(self, next_segment_event, prev_segment_event, 
+                        next_synapse_event, prev_synapse_event, 
+                        synapse_classification_event, segment_select_event, 
+                        save_synapses_event):
         self.root = tk.Tk()
-
-        self.create_info_labels()
-        self.create_buttons(next_segment_event, prev_segment_event, next_synapse_event, prev_synapse_event)
+        self.root.bind("<Escape>", self.shutdown)
+        self.root.title("NG State")
+        self.show_synapses = tk.IntVar()
+        # self.create_synapse_toggle()
+        # self.create_info_labels()
+        self.create_buttons(next_segment_event, prev_segment_event, 
+                            next_synapse_event, prev_synapse_event, 
+                            save_synapses_event)
         #self.create_lists()
-        self.classification_entry = self.create_textbox(synapse_classification_event, next_synapse_event, prev_synapse_event)
+        # self.classification_entry = self.create_textbox(synapse_classification_event, "class")
+        self.seg_id = tk.StringVar()
+        self.seg_id.set("")
+        self.segment_id_entry = self.create_textbox(segment_select_event, self.seg_id, "seg_id")
 
     def start(self):
         self.root.mainloop()
@@ -23,7 +34,8 @@ class UI(object):
         self.labels = labels
 
     def create_buttons(self, next_segment_event, prev_segment_event,
-                            next_synapse_event, prev_synapse_event):
+                            next_synapse_event, prev_synapse_event, 
+                            save_synapses_event):
         """Create buttons to move forward/backward in synapses/segments
         Inputs:
             *_event:fn that handles button press event
@@ -32,10 +44,24 @@ class UI(object):
         segment_forward_button.pack()
         segment_backward_button = tk.Button(self.root, text="Previous Segment", command=prev_segment_event)
         segment_backward_button.pack()
-        synapse_forward_button = tk.Button(self.root, text="Next Synapse", command=next_synapse_event)
-        synapse_forward_button.pack()
-        synapse_backward_button = tk.Button(self.root, text="Previous Synapse", command=prev_synapse_event)
+        # synapse_forward_button = tk.Button(self.root, text="Next Synapse", command=next_synapse_event)
+        # synapse_forward_button.pack()
+        # synapse_backward_button = tk.Button(self.root, text="Previous Synapse", command=prev_synapse_event)
+        # synapse_backward_button.pack()
+        synapse_backward_button = tk.Button(self.root, text="Save Edges", command=save_synapses_event)
         synapse_backward_button.pack()
+
+    def synapses_on(self):
+        print self.show_synapses.get()
+        return self.show_synapses.get()
+
+    def create_synapse_toggle(self):
+        """Create synapse toggle button
+        """
+        toggle_btn = tk.Checkbutton(self.root, text='synapses', # relief="sunken", 
+                        variable=self.show_synapses, command=self.synapses_on)
+        toggle_btn.pack()
+        return toggle_btn
 
     def create_lists(self, segments, synapses, segment_select_event, synapse_select_event):
         """Creates listbox items to display list of available segments and synapses
@@ -58,13 +84,13 @@ class UI(object):
         segment_listbox.pack()
         synapse_listbox.pack()
 
-    def create_textbox(self, synapse_classification_event, prev_synapse_event, next_synapse_event):
-        """Creates textbox for user to enter classication for each synpase."""
-        entry = tk.Entry(self.root)
-        entry.bind("<Return>", synapse_classification_event)
-        entry.bind("<Escape>", shutdown)
-        entry.pack()
-
+    def create_textbox(self, action, textvar, caption=""):
+        """Creates textbox that will execute action when enter is pressed.
+        """
+        label = tk.Label(self.root, text=caption).pack(side=tk.LEFT)
+        entry = tk.Entry(self.root, textvariable=textvar)
+        entry.bind("<Return>", action)
+        entry.pack(side=tk.LEFT)
         return entry
 
     # Fns to update ui
@@ -83,49 +109,20 @@ class UI(object):
         assert(classification in ['1','2','3'])
         return classification
 
-# Testing
-class G:
-    def __init__(self, model):
-        self.model=model
-    def next_synapse_event(self):
-        print("next syn")
+    def get_segment_id(self):
+        try:
+            seg_id = int(self.segment_id_entry.get())
+            return seg_id
+        except e:
+            print e
+            pass
 
-g = G('model')
+    def set_segment_id(self, id):
+        try:
+            self.seg_id.set(str(id))
+        except:
+            print 'error setting seg id'
+            pass
 
-def next_synapse_event():
-    print("next syn")
-
-def prev_synapse_event():
-    print("prev syn")
-
-def next_segment_event():
-    print("next seg")
-
-def prev_segment_event():
-    print("prev seg")
-
-def segment_select_event(evt):
-    print("seg selected")
-
-def synapse_select_event(evt):
-    print("syn selected")
-
-def synapse_classification_event(evt):
-    print("syn class")
-
-def shutdown(evt):
-    print("shutdown")
-
-if __name__=="__main__":
-    synapses = [1,2,3,4,5,6]
-    segments = [10,11,12,13,14,15]
-    root = tk.Tk()
-    labels = create_info_labels(root, ['a', 'b', 'c', 'd', 'e'])
-    labels = update_info_labels(root, labels, ['e', 'f', 'g', 'h', 'i'])
-    create_buttons(root, next_segment_event, prev_segment_event, g.next_synapse_event, prev_synapse_event)
-    create_lists(root, segments, synapses, segment_select_event, synapse_select_event)
-    create_textbox(root, synapse_classification_event, prev_synapse_event, next_synapse_event)
-
-    root.mainloop()
-
-#segment_id_text, synapse_id_text, segments_text, synapses_text, total_synapses_text = init_text
+    def shutdown(self, event):
+        self.root.destroy()
