@@ -121,16 +121,17 @@ Output:
     3D dense Float32 matrix
     origin of the dense matrix
 """
-function make_3D_mask(coords, scale=[1,1,1])
-    pts = [Vec3(c.*scale...) for c in coords]
-    bc = BoundingCube(pts...)
-    vol = zeros(Float32, collect(map(Int64, map(round, size(bc)))) + 2 ...)
-    origin = round(min(bc))
-    for pt in pts
-        vol[map(Int64, collect(round(pt) - origin) + 1)...] = 1
-    end
-    return vol, origin
-end
+#commenting this for now (NT)
+#function make_3D_mask(coords, scale=[1,1,1])
+#    pts = [Vec3(c.*scale...) for c in coords]
+#    bc = BoundingCube(pts...)
+#    vol = zeros(Float32, collect(map(Int64, map(round, size(bc)))) + 2 ...)
+#    origin = round(min(bc))
+#    for pt in pts
+#        vol[map(Int64, collect(round(pt) - origin) + 1)...] = 1
+#    end
+#    return vol, origin
+#end
 
 function make_3D_mask(coords, scale=[1,1,1], sz=[160,145,145])
     pts = [Vec3(c.*scale...) for c in coords]

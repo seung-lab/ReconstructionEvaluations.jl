@@ -56,12 +56,9 @@ function nri( table1::AbstractArray, table2::AbstractArray; correct=true )
 
   res_segNRI  = sparsevec( Int[], Float64[], maximum(keys(A_to_inds))+1 )
   res_segNRIw = sparsevec( Int[], Float64[], maximum(keys(A_to_inds))+1 )
-  #NOTE: currently assumes that A_to_ind refers to the actual index minus 1
-  # (Tommy's convention from build_count_table). This should be removed if
-  # build_count_table is modified
   for (k,v) in A_to_inds 
-      res_segNRI[k] = segNRI[v+1] 
-      res_segNRIw[k] = segNRIw[v+1]
+      res_segNRI[k] = segNRI[v] 
+      res_segNRIw[k] = segNRIw[v]
   end
 
   NRI, res_segNRI, res_segNRIw
