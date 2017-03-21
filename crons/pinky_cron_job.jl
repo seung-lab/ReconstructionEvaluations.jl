@@ -14,7 +14,7 @@ using HDF5
 seg_fname = ARGS[1]
 output_prefix = ARGS[2]
 
-append_score = false 
+append_score = false
 
 #-------------------------
 gt_seg = "data/pinky_golden_cube_021717.h5"
@@ -40,7 +40,6 @@ println("RUNNING SYNAPTOR POSTPROCESSING")
 cfg = Synaptor.make_gc_cfg(seg_fname, output_prefix)
 
 edge_fname = Drivers.run_synaptor_cfg( cfg, output_prefix, dist_thr, res )
-#edge_fname = "/usr/people/nturner/seungmount/research/metric_cronbot/pinky/pinky_cron_02_03_2017_edges_cons.csv"
 
 
 #==
@@ -60,13 +59,17 @@ println("Class NRI: $(class_NRIs)")
 println("Class Weight: $(class_weight)")
 
 
-seg_ids, seg_nris = CronUtils.spvec_to_arrays(seg_nris)
-seg_ids, seg_nriw = CronUtils.spvec_to_arrays(seg_nriw)
+seg_ids1, seg_nris = CronUtils.spvec_to_arrays(seg_nris)
+seg_ids2, seg_nriw = CronUtils.spvec_to_arrays(seg_nriw)
+seg_ids, seg_nris, seg_nriw = CronUtils.fill_array_indices(seg_ids1, seg_nris,
+                                                           seg_ids2, seg_nriw)
 
-pseg_ids, pseg_nris = CronUtils.spvec_to_arrays(pseg_nris)
-pseg_ids, pseg_nriw = CronUtils.spvec_to_arrays(pseg_nriw)
+pseg_ids1, pseg_nris = CronUtils.spvec_to_arrays(pseg_nris)
+pseg_ids2, pseg_nriw = CronUtils.spvec_to_arrays(pseg_nriw)
+pseg_ids, pseg_nris, pseg_nriw = CronUtils.fill_array_indices(pseg_ids1, pseg_nris,
+                                                              pseg_ids2, pseg_nriw)
 
-h5write( score_h5, "NRI"       , full_nri       ) 
+h5write( score_h5, "NRI"       , full_nri       )
 h5write( score_h5, "seg_NRIs"  , seg_nris       )
 h5write( score_h5, "seg_NRIws" , seg_nriw       )
 h5write( score_h5, "seg_ids"   , seg_ids        )
@@ -77,6 +80,7 @@ h5write( score_h5, "dend_NRIw" , class_weight[3])
 h5write( score_h5, "pseg_NRIs" , pseg_nris      )
 h5write( score_h5, "pseg_NRIws", pseg_nriw      )
 h5write( score_h5, "pseg_ids"  , pseg_ids       )
+
 
 if append_score CronUtils.append_score( full_nri, score_record ) end
 
@@ -110,4 +114,3 @@ RE.write_map_file( mergers_fname, mergers )
 h5write( score_h5, "num_axon_splits", num_axon_splits )
 h5write( score_h5, "num_dend_splits", num_dend_splits )
 h5write( score_h5, "num_mergers", num_mergers )
-
