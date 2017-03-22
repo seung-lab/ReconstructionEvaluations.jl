@@ -27,6 +27,18 @@ function load_edges(fn)
     return tbl
 end
 
+"""
+Load python parsed edge csv & parse columns appropriately
+"""
+function load_edges_from_python(fn)
+    tbl = readdlm(fn, ',', Int64)
+    new_tbl = Array(Any, size(tbl,1), 4)
+    new_tbl[:,1] = tbl[:,1]
+    new_tbl[:,2] = [[tbl[i,2:3]...] for i in 1:size(tbl,1)]
+    new_tbl[:,3] = [[tbl[i,4:6]...] for i in 1:size(tbl,1)]
+    new_tbl[:,4] = tbl[:,7]
+    return new_tbl
+end
 
 function read_h5( fname, read_whole_dset=true, h5_dset_name="/main" )
 

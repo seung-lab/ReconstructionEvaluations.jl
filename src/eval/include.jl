@@ -1,6 +1,5 @@
-
 include("count_table.jl")
-#include("nri.jl")
-include("NRI.jl")
+include("em.jl")
+include("nri.jl")
 include("overlap.jl")
 include("syn_recovery.jl")
