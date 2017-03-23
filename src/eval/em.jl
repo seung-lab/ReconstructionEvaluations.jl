@@ -11,52 +11,51 @@ Outputs:
 function count_neighbor_labels(adj, labels)
     assert(size(adj,1) == length(labels))
     n = size(adj,1)
-    labels = unique(labels)
-    counts = zeros(Int64,length(labels),n)
+    counts = zeros(Int64,length(unique(labels)),n)
     rows = rowvals(adj)
     # vals = nonzeros(adj)
     for i in 1:n
         for j in nzrange(adj, i)
             row = rows[j]
+            # println(row, i)
             # val = vals[j]
-            neighbor_label = labels[row]
-            counts[j,neighbor_label] += 1 
+            neighbor_label = labels[i]
+            counts[neighbor_label,row] += 1 
         end
     end
     return counts
 end
 
 """
-Calculate log-likelihood function
+Compile count dicts of connections between labels (accounting for pre & post)
 
 Inputs:
     counts: MxN array of count of neighbors per each label 
         (see count_neighbor_labels)
     labels: Nx1 label assignment of each neuron
-    pr: MxM array of connection probabilities between labels
+    pre_post: Nx1 int classification or pre (1) or post (2)
+        (only allow possible connections from pre to post)
 
 Outputs:
-    ll: log-likelihood function value
     ns: count dict of current label pair connections
     Ns: count dict of total possible label pair connections
 """
-function calculate_ll(counts::Array, labels::Array, pr::Array)
+function compile_count_dicts(counts::Array, labels::Array, pre_post::Array)
     pairs = []
-    for i in 1:size(pr,1)
-        for j in 1:size(pr,1)
+    for i in unique(labels)
+        for j in unique(labels)
             push!(pairs, (i,j))
         end
     end
     ns = Dict()
     Ns = Dict()
     for (a,b) in pairs
-        n = sum(counts[a, labels.==b])
-        N = sum(labels.==a)*sum(labels.==b)
+        n = sum(counts[b, labels.==a])
+        N = sum((labels.==a)&(pre_post.==1))*sum((labels.==b)&(pre_post.==2))
         ns[a,b] = n
         Ns[a,b] = N
     end
-    ll = calculate_ll(ns, Ns, pr)
-    return ll, ns, Ns
+    return ns, Ns
 end
 
 """
@@ -72,31 +71,33 @@ Outputs:
 """
 function calculate_ll(ns::Dict, Ns::Dict, pr::Array)
     ll = 0
-    for (a,b) in pairs
+    for (a,b) in keys(ns)
+        n = ns[a,b]
+        N = Ns[a,b]
         ll += n*log10(pr[a,b]) + (N-n)*log10(1-pr[a,b])
     end
     return ll
 end
 
 """
-Calculate log-likelihood after switching label of one neuron
+Calculate log-likelihood after swapping the label of one neuron
     The updates should be O(1) to prevent from total recalculation
 
 Inputs:
-    ll: base log-likelihood
     ns: count dict of current label pair connections
     Ns: count dict of total possible label pair connections
-    pr: MxM array of connection probabilities between labels
     counts: MxN array of count of neighbors per each label
     labels: integer list of each neuron's label (Nx1)
-    i: index of neuron whose label will be switched
+    pre_post: Nx1 int classification or pre (1) or post (2)
+    i: index of neuron whose label will be swapped
 
 Outputs:
-    ll: log-likelihood after neuron i's label has been switched
+    updated ns
+    updated Ns
 """
-function calculate_switch_label_ll(ll, ns, Ns, pr, counts, labels, i)
+function adjust_dicts_swap(ns, Ns, counts, labels, pre_post, i)
     old_label = labels[i]
-    new_label = get_switched_label(labels, i)
+    new_label = get_swapped_label(labels, i)
     count_adjustments = counts[:,i][:]
     for (a,b) in keys(ns)
         adjust = count_adjustments[b]
@@ -115,13 +116,13 @@ function calculate_switch_label_ll(ll, ns, Ns, pr, counts, labels, i)
                                         (round(Int64, sqrt(old_count)) - 1)
     Ns[new_label, old_label] = Ns[old_label, new_label]
 
-    return calculate_ll(ns, Ns, pr)
+    return ns, Ns
 end
 
 """
-Switch label of neuron i
+Swap label of neuron i
 """
-function get_switched_label(labels, i)
+function get_swapped_label(labels, i)
     old_label = labels[i]
     return setdiff(unique(labels), [old_label])[1]
 end
@@ -135,20 +136,24 @@ function make_dummy_data(n=20)
     labels = ones(Int64, n)
     m = round(Int64, n/2)
     labels[m+1:end] = ones(Int64, length(m+1:n))*2
+    pre_post = ones(Int64, n)
+    pre_post[unique(rand(1:n, round(Int64, n/4)))] = 2
     # E,I x E,I
     pr = [0.6 0.2; 0.4 0.3]
     for i in 1:n
         for j in 1:n
-            ci, cj = labels[i], labels[j]
-            p = pr[ci,cj]
-            adj[i,j] = rand() < p
+            if pre_post[i] == 1 & pre_post[j] == 2
+                ci, cj = labels[i], labels[j]
+                p = pr[ci,cj]
+                adj[i,j] = rand() < p
+            end
         end
     end 
-    return adj, labels, pr
+    return adj, labels, pr, pre_post
 end
 
 function run_dummy_test()
-    adj, labels, pr = make_dummy_data()
+    adj, labels, pr, pre_post = make_dummy_data()
     k = size(adj,1)
     labels_changed = true
     n_iter = 5
@@ -156,11 +161,13 @@ function run_dummy_test()
     while label_changed | iter >= n_iter 
         labels_changed = false
         counts = count_neighbor_labels(adj, labels)
-        ll, ns, Ns = calculate_ll(counts, labels, pr)
+        ns, Ns = compile_count_dicts(counts, labels, pre_post)
+        ll = calculate_ll(ns, Ns, pr)
         for i in 1:k
-            switch_ll = calculate_switch_label_ll(ll, ns, Ns, pr, counts, labels, i)
-            if switch_ll > ll
-                labels[i] = get_switched_label(labels, i)
+            new_ns, new_Ns = swap_label_ll(ns, Ns, pre_post, counts, labels, i)
+            new_ll = calculate_ll(new_ns, new_Ns, pr)
+            if new_ll > ll
+                labels[i] = get_swapped_label(labels, i)
                 labels_changed = true
             end
         end

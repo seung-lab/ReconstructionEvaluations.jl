@@ -2,6 +2,8 @@
 
 module NRI
 
+import ..ReconstructionEvaluations
+const RE = ReconstructionEvaluations;
 
 """
 
@@ -38,12 +40,38 @@ end
 
 function nri( TP::SparseVector, FP::SparseVector, FN::SparseVector )
 
-  inds = find(TP);
+  inds = find(TP); #if a segment has no TP's, segNRI=0
   res = sparsevec(Int[],Float64[],length(TP))
 
   for i in inds res[i] = (2*TP[i]) / (2*TP[i] + FP[i] + FN[i]) end
 
   res
+end
+
+
+function nri( table1::AbstractArray, table2::AbstractArray; correct=true )
+  count_table, A_to_inds, B_to_inds = RE.build_count_table(table1,table2)
+
+  NRI, segNRI, segNRIw = nri( count_table; correct=correct )
+
+  res_segNRI  = sparsevec( Int[], Float64[], maximum(keys(A_to_inds))+1 )
+  res_segNRIw = sparsevec( Int[], Float64[], maximum(keys(A_to_inds))+1 )
+  for (k,v) in A_to_inds 
+      res_segNRI[k] = segNRI[v] 
+      res_segNRIw[k] = segNRIw[v]
+  end
+
+  NRI, res_segNRI, res_segNRIw
+end
+
+
+function nri( fname1::AbstractString, fname2::AbstractString )
+
+  @assert isfile(fname1) && isfile(fname2)
+
+  table1, table2 = RE.load_edges(fname1), RE.load_edges(fname2)
+
+  nri( table1, table2 )
 end
 
 
@@ -176,12 +204,41 @@ function nri_weight( segTP, segFP, segFN )
 
   total_weight = 2*sum(segTP) + sum(segFP) + sum(segFN)
 
-  is = find(segTP)
+  is = Set(find(segTP)); union!(is, find(segFP)); union!(is, find(segFN));
+
   res = sparsevec(Int[],Float64[],length(segTP))
 
   for i in is res[i] = (2*segTP[i] + segFP[i] + segFN[i]) / total_weight end
 
   res
+end
+
+
+"""
+
+    nri_by_class( seg_nri, seg_nriw, class_map )
+"""
+function nri_by_class( seg_nri, seg_nriw, class_map )
+
+  is = find(seg_nriw)
+
+  class_nri = Dict( k => 0. for k in unique(values(class_map)) )
+  class_w   = Dict( k => 0. for k in unique(values(class_map)) )
+
+  for i in is
+    if !haskey(class_map,i) continue end
+
+    class_w[class_map[i]] += seg_nriw[i]
+  end
+
+  for i in is
+    if !haskey(class_map,i) continue end
+    class = class_map[i]
+
+    class_nri[class] += (seg_nri[i] * seg_nriw[i]) / class_w[class]
+  end
+
+  class_nri, class_w
 end
 
 #Utility fns
