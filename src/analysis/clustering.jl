@@ -75,7 +75,7 @@ function create_graph_dicts(edges, filter_ids)
     
     function push_dict!(d, k, v)
         if !haskey(d, k)
-            d[k] = Array{Int64,1}
+            d[k] = Array{Int64,1}()
         end
         push!(d[k], v)
     end
@@ -216,12 +216,25 @@ end
 """
 Create (sparse) adjacency matrix with normalized synapse size as weight
 """
-function create_adjacency_matrix(seg_to_index, syn_to_segs, syn_size)
+function create_weighted_adjacency_matrix(seg_to_index, syn_to_segs, syn_size)
     n = length(seg_to_index)
     adj = spzeros(n,n)
     for (syn, (pre, post)) in syn_to_segs
         u, v = seg_to_index[pre], seg_to_index[post]
         adj[u,v] += syn_size[syn]
+    end
+    return adj    
+end
+
+"""
+Create (sparse) adjacency matrix with normalized synapse size as weight
+"""
+function create_connectivity_adjacency_matrix(seg_to_index, syn_to_segs)
+    n = length(seg_to_index)
+    adj = spzeros(n,n)
+    for (syn, (pre, post)) in syn_to_segs
+        u, v = seg_to_index[pre], seg_to_index[post]
+        adj[u,v] = 1
     end
     return adj    
 end
