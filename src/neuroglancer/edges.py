@@ -1,5 +1,7 @@
 import numpy as np
 import csv
+import pickle
+import h5py
 from ast import literal_eval as make_tuple
 
 def load_edges(fn, synaptor=False):
@@ -194,3 +196,6 @@ def remap_synapse_centroids_from_pickle(edges, pre_post_dicts):
         row[7:10], _ = find_nearest(centr, possible_pre)
         row[10:13], _ = find_nearest(centr, possible_post)
     return new_edges
+
+def load_map_dict(fn):
+    return pickle.load(open(fn, "rb"))
