@@ -20,7 +20,7 @@ model parameters `ps`.
 If neither a `g` nor a `ps` is passed, g is taken from the internal SBM state,
 and the parameters are computed from that state.
 """
-function loglikelihood(sbm::SBM)
+function loglikelihood(sbm::SBM, g=nothing, ps=nothing)
   error("loglikelihood not implemented for type $(typeof(sbm))")
 end
 
@@ -28,11 +28,27 @@ end
 
     computeparams(sbm::SBM, g=nothing)
 
-  Computes the model parameters for a model at the cluster state `g`, or given the
-parameters `ps`. If a `ps` argument is passed, the `g` variable is ignored.
+  Computes the model parameters for a model at the cluster state `g`.
+
+  If no `g` variable is passed, it's taken from the internal model state.
 """
-function computeparams(sbm::SBM)
+function computeparams(sbm::SBM, g=nothing, ps=nothing)
   error("computeparams not implemented for type $(typeof(sbm))")
+end
+
+
+"""
+
+    updateparams!(sbm::SBM, ps, old_g, g=nothing)
+
+  Sometimes, it can be quicker to update parameters given the group changes
+instead or recomputing them. This performs an update step, or defaults to
+recomputation.
+
+  If no `g` variable is passed, it's taken from the internal model state.
+"""
+function updateparams!(sbm::SBM, ps, old_g, g=nothing)
+  computeparams(sbm,g)
 end
 
 
@@ -66,7 +82,6 @@ the ll.
 """
 function bestmove(sbm::SBM, i, g=nothing, ps=nothing; forcemove=true)
   moves, logliks = considermoves(sbm, i, g, ps; forcemove=forcemove)
-
   maxll, maxi = findmax(logliks)
 
   moves[maxi], maxll
@@ -84,7 +99,8 @@ enactmove(sbm::SBM, i, new_group) = sbm.g[i] = new_group
 
 
 getindices(sbm::SBM) = 1:size(sbm.G,1)
-getgroups(sbm::SBM) = sbm.g
+getgroups(sbm::SBM) = copy(sbm.g)
+getgroups(sbm::SBM, i) = sbm.g[i]
 
 
 """
@@ -97,7 +113,7 @@ function setgroups(sbm::SBM, g)
   @assert typeof(g) == typeof(sbm.g)
   @assert length(g) == length(sbm.g)
 
-  sbm.g = g
+  sbm.g = copy(g)
 
 end
 

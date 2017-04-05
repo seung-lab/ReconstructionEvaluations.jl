@@ -9,7 +9,7 @@ using FastConv
 
 #plt[:style][:use]("ggplot")
 
-export 
+export
     load_edges,
     edges_to_syn_dicts,
     segm_overlap, overlap_in_chunks, create_segID_map,
@@ -28,7 +28,7 @@ export
     find_trunk_mapping, synapse_recovery,
     Vec3, Point3, BoundingCube,
     # limits in world coordinates
-    is_inside, xmin, xmax, ymin, ymax, zmin, zmax, center, 
+    is_inside, xmin, xmax, ymin, ymax, zmin, zmax, center,
     xrange, yrange, zrange, shift, deform,
     width, height, depth,
     # clustering methods
@@ -38,9 +38,14 @@ export
 
 
 include("utils/include.jl")
+
 include("eval/include.jl")
+
 include("analysis/include.jl")
+using .SBMs
+
 include("CronUtils/include.jl")
+
 include("experiments/experiments.jl")
 
 end

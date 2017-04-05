@@ -1,8 +1,14 @@
 module PoissonSBM
 
+
 using ..SBMs
 
+
+export PoisSBM
+
+
 import Distributions
+
 
 #for now, I'll assume that the model is:
 #  - directed
@@ -31,7 +37,7 @@ function make_dummy( N=40 )
     end
   end
 
-  p = [0  0  8  6;
+  p = [0  0  6  3;
        0  0  1  1;
        0  0  0  0;
        0  0  0  0];
@@ -46,7 +52,7 @@ end
 
 function SBMs.computeparams(sbm::PoisSBM, g=nothing)
 
-  if g == nothing g = sbm.g end
+  if g == nothing  g = sbm.g  end
 
   node_indeg, node_outdeg = compute_node_degrees(sbm, g)
 
@@ -57,6 +63,52 @@ function SBMs.computeparams(sbm::PoisSBM, g=nothing)
         "cluster_indeg"=>cl_indeg,
         "cluster_outdeg"=>cl_outdeg,
         "cluster_edge_counts"=>cl_edges )
+end
+
+
+function SBMs.updateparams!(sbm::PoisSBM, ps, old_g, g=nothing)
+
+  if g == nothing  g = sbm.g  end
+
+  update_node_degrees!(sbm, ps, old_g, g)
+
+  cl_indeg, cl_outdeg, cl_edges = group_degrees(ps["node_indeg"],ps["node_outdeg"],g)
+
+  ps["cluster_indeg"]  = cl_indeg;
+  ps["cluster_outdeg"] = cl_outdeg;
+  ps["cluster_edge_counts"] = cl_edges;
+
+end
+
+
+function update_node_degrees!(sbm::PoisSBM, ps, old_g, g)
+
+  @assert typeof(old_g) == typeof(g)
+  @assert size(old_g)   == size(g)
+
+  node_indeg = ps["node_indeg"]
+  node_outdeg = ps["node_outdeg"]
+
+  for i in eachindex(g)
+    curr_group, old_group = g[i],old_g[i]
+
+    if curr_group == old_group  continue  end
+
+    senders, sender_vs = findnz(sbm.G[:,i])
+    receivers, rec_vs  = findnz(sbm.G[i,:])
+
+    for (s,sv) in zip(senders, sender_vs)
+      node_outdeg[s,old_group]  -= sv
+      node_outdeg[s,curr_group] += sv
+    end
+
+    for (r,rv) in zip(receivers,rec_vs)
+      node_indeg[r,old_group] -= rv
+      node_indeg[r,curr_group] += rv
+    end
+
+  end
+
 end
 
 
@@ -116,15 +168,13 @@ function SBMs.considermoves(sbm::PoisSBM, i, g=nothing, ps=nothing; forcemove=tr
 
   for group in g_type[1]
 
-    if gi == group && forcemove
-      continue
-    end
+    if gi == group && forcemove  continue  end
 
     push!(moves,group)
 
     new_params = tweak_params(ps, i, gi, group)
 
-    push!(logliks, loglikelihood(sbm, new_params))
+    push!(logliks, loglikelihood(sbm, nothing, new_params))
   end
 
   moves, logliks
