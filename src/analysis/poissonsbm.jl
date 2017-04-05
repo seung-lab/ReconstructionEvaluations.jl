@@ -1,9 +1,8 @@
 module PoissonSBM
 
-include("SBM.jl")
-using .sbm
+using ..SBMs
 
-using Distributions
+import Distributions
 
 #for now, I'll assume that the model is:
 #  - directed
@@ -14,7 +13,7 @@ type PoisSBM <: SBM
   G::SparseMatrixCSC
   g::Vector{Int}
   t::Tuple{Vector{Int},Vector{Int}}
-  
+
 end
 
 
@@ -39,17 +38,13 @@ function make_dummy( N=40 )
 
   dists = [Distributions.Poisson(p[i,j]) for i in 1:4, j in 1:4]
 
-  sbm.fill_G!(G, g, dists)
+  SBMs.fill_G!(G, g, dists)
 
   PoisSBM(G,g,t)
 end
 
 
-"""
-Computing everything you need to compute likelihood and consider
-moves
-"""
-function computeparams(sbm::PoisSBM, g=nothing)
+function SBMs.computeparams(sbm::PoisSBM, g=nothing)
 
   if g == nothing g = sbm.g end
 
@@ -66,7 +61,7 @@ end
 
 
 function compute_node_degrees(sbm, g=nothing)
-  
+
   if g == nothing g = sbm.g end
 
   G = sbm.G
@@ -106,41 +101,43 @@ function group_degrees(node_indeg, node_outdeg, g)
 end
 
 
-function considermoves(sbm::PoisSBM, i, g=nothing, params=nothing)
+function SBMs.considermoves(sbm::PoisSBM, i, g=nothing, ps=nothing; forcemove=true)
 
-  if g == nothing     g = sbm.g                    end
-  if params==nothing  params=computeparams(sbm,g)  end
+  if g == nothing   g = sbm.g                end
+  if ps == nothing  ps=computeparams(sbm,g)  end
 
   gi = g[i]
 
   g_type = collect(filter( x -> gi in x, sbm.t ))
-  @assert length(g_type) == 1
+  @assert length(g_type) == 1 "Group exists within multilple types"
 
   moves = Int[]
   logliks = Float64[]
 
   for group in g_type[1]
 
-    if gi == group continue end
+    if gi == group && forcemove
+      continue
+    end
 
     push!(moves,group)
 
-    new_params = tweak_params(params, i, gi, group)
-    
+    new_params = tweak_params(ps, i, gi, group)
+
     push!(logliks, loglikelihood(sbm, new_params))
   end
-  
+
   moves, logliks
 end
 
 
-function tweak_params(params, i, orig_group, new_group)
-  
-  nbor_incls = params["node_indeg"][i,:]
-  nbor_outcls = params["node_outdeg"][i,:]
+function tweak_params(ps, i, orig_group, new_group)
 
-  cl_edges = copy(params["cluster_edge_counts"])
-  
+  nbor_incls = ps["node_indeg"][i,:]
+  nbor_outcls = ps["node_outdeg"][i,:]
+
+  cl_edges = copy(ps["cluster_edge_counts"])
+
   for cl in eachindex(nbor_incls)
     cl_edges[orig_group,cl] -= nbor_outcls[cl]
     cl_edges[cl,orig_group] -= nbor_incls[cl]
@@ -155,11 +152,11 @@ function tweak_params(params, i, orig_group, new_group)
 end
 
 
-function loglikelihood(sbm::PoisSBM, g=nothing, ps=nothing)
-  
+function SBMs.loglikelihood(sbm::PoisSBM, g=nothing, ps=nothing)
+
   if g == nothing   g = sbm.g                end
   if ps == nothing  ps = computeparams(sbm)  end
-  
+
   cl_indeg    = ps["cluster_indeg"]
   cl_outdeg   = ps["cluster_outdeg"]
   edge_counts = ps["cluster_edge_counts"]
@@ -170,17 +167,15 @@ function loglikelihood(sbm::PoisSBM, g=nothing, ps=nothing)
     cl_out_r = cl_outdeg[r]
     cl_in_s  = cl_indeg[s]
 
-    println(cl_out_r)
-    println(cl_in_s)
 
     if cl_out_r*cl_in_s == 0  continue  end
 
     m_rs = edge_counts[r,s]
-    println(m_rs)
     ll += m_rs*log(m_rs/(cl_out_r*cl_in_s))
   end
 
   ll
 end
+
 
 end #module PoissonSBM
