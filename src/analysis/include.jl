@@ -7,3 +7,4 @@ include("visualize.jl")
 #SBMs
 include("sbms.jl")
 include("poissonsbm.jl")
+include("sbmopt.jl")
