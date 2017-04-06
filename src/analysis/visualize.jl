@@ -19,11 +19,11 @@ end
 
 """
 """
-function view_sparse(arr)
+function view_sparse(arr, precision=0.1)
     # check_MATLAB()
     # put_variable(s1, :arr, arr)
     # eval_string(s1, "spy(arr)")
-    plt[:spy](arr, marker=".", precision=0.1, markersize=1)
+    plt[:spy](arr, marker=".", precision=precision, markersize=1)
 end
 
 """
@@ -37,7 +37,7 @@ function label3d(ax, points)
     for i in 1:size(cluster_centroid,1)
         ax[:text](cluster_centroid[i,:]...,"$i")
     end
-end    
+end
 
 """
 Plot sphere in PyPlot with center, ctr, and radius, r
@@ -67,7 +67,7 @@ function plot_NRI(nN, roc)
         ax = gca()
         ax[:set_yscale]("log")
     end
-    
+
     fig = figure()
     subplot(221)
     hist_nan(nN)

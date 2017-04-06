@@ -68,7 +68,7 @@ function make_full_dummy( N=40, dir=false, degcorr=false )
   dists = [Distributions.Poisson(p[i,j]) for i in 1:2, j in 1:2]
 
   SBMs.fill_G!(G, g, dists, dir)
-  
+
   PoisSBM(G,g,t,dir,degcorr)
 end
 
@@ -108,7 +108,7 @@ function SBMs.updateparams!(sbm::PoisSBM, ps, old_g, g=nothing)
 
   if g == nothing  g = sbm.g  end
 
-  update_group_counts!(ps, old,g)
+  update_group_counts!(ps, old_g)
   update_node_degrees!(sbm, ps, old_g, g)
 
   cl_indeg, cl_outdeg, cl_edges = group_degrees(ps["node_indeg"],ps["node_outdeg"],g)
@@ -290,35 +290,12 @@ function SBMs.loglikelihood(sbm::PoisSBM, g=nothing, ps=nothing)
   ll
 end
 
-#=====
-Not sure about this part yet
-function compute_prob_matrix(sbm::PoisSBM, g=nothing, ps=nothing)
-
-  if g == nothing   g = sbm.g                  end
-  if ps == nothing  ps = computeparams(sbm,g)  end
-
-  cl_edges = copy(ps["cluster_edge_counts"])
-  cl_counts = ps["cluster_counts"]
-
-  cl_indeg  = ps["cluster_indeg"]
-  cl_outdeg = ps["cluster_outdeg"]
-
-  sy,sx = size(cl_edges)
-  for s in 1:sy, r in 1:sx
-
-    denom = 0
-    if sbm.degcorr  denom = cl_outdeg[r]*cl_indeg[s]
-    else            denom = cl_counts[r]*cl_counts[s]
-    end
-
-    if denom == 0  continue  end
-
-    cl_edges /= denom
-  end
-
-  cl_edges
-end
-======#
+#Not ready yet
+#function compute_prob_matrix(sbm::PoisSBM, g=nothing, ps=nothing)
+#
+#  if g == nothing   g = sbm.g                  end
+#  if ps == nothing  ps = computeparams(sbm,g)  end
+#end
 
 
 end #module PoissonSBM
