@@ -4,6 +4,7 @@ module SBMopt
 using ..SBMs
 
 export simpleopt!, fasteropt!, TMopt!, KLopt!
+export multiple_trials
 
 """
 
@@ -20,13 +21,13 @@ function simpleopt!(sbm::SBM, nepoch=100)
     print("\rEpoch #$n")
     ll = 0
 
-    for i in SBMs.getindices(sbm)
+    for i in shuffle(SBMs.getindices(sbm))
 
       next_move, ll = SBMs.bestmove(sbm,i; forcemove=false)
       SBMs.enactmove(sbm,i,next_move)
 
+      push!(lls,ll)
     end
-    push!(lls,ll)
   end
   println("")
 
@@ -48,7 +49,7 @@ function fasteropt!(sbm::SBM, nepoch=100)
     ll = 0
     ps = SBMs.computeparams(sbm)
 
-    for i in SBMs.getindices(sbm)
+    for i in shuffle(SBMs.getindices(sbm))
 
       next_move, ll = SBMs.bestmove(sbm,i,nothing,ps; forcemove=false)
 
@@ -56,8 +57,8 @@ function fasteropt!(sbm::SBM, nepoch=100)
       SBMs.enactmove(sbm,i,next_move)
       if old_g[i] != next_move  SBMs.updateparams!(sbm,ps,old_g)  end
 
+      push!(lls,ll)
     end
-    push!(lls,ll)
   end
   println("")
 
@@ -79,7 +80,7 @@ function TMopt!(sbm::SBM, nepoch=100)
 
     groups_start_epoch = SBMs.getgroups(sbm)
 
-    for i in randperm(SBMs.getindices(sbm))
+    for i in shuffle(SBMs.getindices(sbm))
 
       next_move, ll = SBMs.bestmove(sbm,i,nothing,ps; forcemove=false)
 
@@ -112,20 +113,24 @@ function multiple_trials(sbm::SBM, opt_fn::Function, num_trials=10, nepochs=100)
 
   start_g = SBMs.getgroups(sbm)
 
+  best_lls = [] 
   final_lls = []
+  best_final_ll = -Inf
   final_groups = []
 
   for t in 1:num_trials
 
     SBMs.setgroups(sbm,start_g)
 
-    lls = opt_fn(sbm,nepochs)
+    trial_lls = opt_fn(sbm,nepochs)
 
     push!(final_lls, trial_lls[end])
     push!(final_groups, SBMs.getgroups(sbm))
+
+    if trial_lls[end] > best_final_ll  best_lls = trial_lls  end
   end
 
-  final_lls, final_groups
+  final_lls, final_groups, best_lls
 end
 
 
