@@ -118,19 +118,19 @@ function setgroups(sbm::SBM, g)
 end
 
 #==========================================
-Utility Functions
+General SBM Utility Functions
 ==========================================#
 
 """
 
-    fill_G!(G::SparseMatrixCSC, g, dists)
+    fill_G!(G::SparseMatrixCSC, g, dists, dir)
 
   Fills the graph matrix with edges depending upon the group
 distributions within dists. Sampling from the distribution at
 index `[i,j]` should instantiate an edge/multiedge between
 a node in group `i` and a node in group `j`.
 """
-function fill_G!(G::SparseMatrixCSC, g, dists)
+function fill_G!(G::SparseMatrixCSC, g, dists, dir)
 
   @assert size(G,1) == size(G,2) "G must be a square matrix"
   num_groups = length(unique(g))
@@ -148,8 +148,58 @@ function fill_G!(G::SparseMatrixCSC, g, dists)
     if v == 0 continue end
 
     G[i,j] = v
+    if !dir  G[j,i] = v  end
   end
 
+end
+
+
+function randomize_g(g, group_types)
+
+  rand_g = zeros(Int,length(g))
+
+  group_to_type = Dict();
+  for (i,t) in enumerate(group_types)
+    for group in t
+      group_to_type[group] = i
+    end
+  end
+
+  for i in eachindex(g)
+    rand_g[i] = rand(group_types[group_to_type[g[i]]])
+  end
+
+  rand_g
+end
+
+
+"""
+Finds the valid cluster pairs to evaluate for the likelihood fn
+"""
+function assemble_pairs(gtypes, directed)
+
+  @assert length(gtypes) in [1,2] "only full or bipartite graphs supported"
+
+  pairs = Tuple{Int,Int}[] #init
+  if length(gtypes) == 2 && directed #directed bipartite graph
+    pairs12 = [(r,s) for r in gtypes[1], s in gtypes[2]][:]
+    pairs21 = [(r,s) for r in gtypes[2], s in gtypes[1]][:]
+    pairs = vcat(pairs12,pairs21)
+
+  elseif length(gtypes) == 2 #undirected bipartite
+    pairs = [(r,s) for r in gtypes[1], s in gtypes[2]][:]
+
+  elseif directed #directed full graph
+    pairs = [(r,s) for r in gtypes[1], s in gtypes[1]][:]
+
+  else #undirected full graph
+    gs = gtypes[1]; ng = length(gs)
+    for i in 1:ng, j in i+1:ng
+      push!(pairs,(gs[i],gs[j]))
+    end
+  end
+
+  pairs
 end
 
 
