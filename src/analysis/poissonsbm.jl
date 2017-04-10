@@ -20,6 +20,8 @@ type PoisSBM <: SBM
 
 end
 
+#Each "ps" is an Any[] with the following fields (Dicts were REALLY slow...)
+@enum PARAMFIELDS CL_COUNTS=1 NODE_INDEG=2 NODE_OUTDEG=3 CL_INDEG=4 CL_OUTDEG=5 CL_EDGE_COUNTS=6
 
 function make_dummy( N=40, dir=false, degcorr=true )
 
@@ -36,12 +38,13 @@ function make_dummy( N=40, dir=false, degcorr=true )
     end
   end
 
-  p = [0  0  6  2;
+  p = [0  0  2  2;
        0  0  1  3;
        0  0  0  0;
        0  0  0  0];
 
-  dists = [Distributions.Poisson(p[i,j]) for i in 1:4, j in 1:4]
+  #NOTE: dummy model currently doesn't include much degree variation
+  dists = [Distributions.Poisson(p[i,j]) for i in 1:4, j in 1:4];
 
   SBMs.fill_G!(G, g, dists, dir)
 
@@ -65,6 +68,7 @@ function make_full_dummy( N=40, dir=false, degcorr=false )
   p = [1  5;
        2  1]
 
+  #NOTE: dummy model currently doesn't include much degree variation
   dists = [Distributions.Poisson(p[i,j]) for i in 1:2, j in 1:2]
 
   SBMs.fill_G!(G, g, dists, dir)
@@ -83,12 +87,8 @@ function SBMs.computeparams(sbm::PoisSBM, g=nothing)
 
   cl_indeg, cl_outdeg, cl_edges = group_degrees(node_indeg, node_outdeg, g)
 
-  Dict( "cluster_counts"=>cluster_counts,
-        "node_indeg"=>node_indeg,
-        "node_outdeg"=>node_outdeg,
-        "cluster_indeg"=>cl_indeg,
-        "cluster_outdeg"=>cl_outdeg,
-        "cluster_edge_counts"=>cl_edges )
+  Any[cluster_counts, node_indeg, node_outdeg,
+   cl_indeg, cl_outdeg, cl_edges]
 end
 
 
@@ -111,11 +111,12 @@ function SBMs.updateparams!(sbm::PoisSBM, ps, old_g, g=nothing)
   update_group_counts!(ps, old_g)
   update_node_degrees!(sbm, ps, old_g, g)
 
-  cl_indeg, cl_outdeg, cl_edges = group_degrees(ps["node_indeg"],ps["node_outdeg"],g)
+  cl_indeg, cl_outdeg, cl_edges = group_degrees(ps[Int(NODE_INDEG)],
+                                                ps[Int(NODE_OUTDEG)],g)
 
-  ps["cluster_indeg"]  = cl_indeg;
-  ps["cluster_outdeg"] = cl_outdeg;
-  ps["cluster_edge_counts"] = cl_edges;
+  ps[Int(CL_INDEG)]  = cl_indeg;
+  ps[Int(CL_OUTDEG)] = cl_outdeg;
+  ps[Int(CL_EDGE_COUNTS)] = cl_edges;
 
 end
 
@@ -123,7 +124,7 @@ end
 function update_group_counts!(ps,g)
 
   #recomputing is as fast as updating in this case
-  ps["group_counts"] = count_groups(g)
+  ps[Int(CL_COUNTS)] = count_groups(g)
 
 end
 
@@ -133,8 +134,8 @@ function update_node_degrees!(sbm::PoisSBM, ps, old_g, g)
   @assert typeof(old_g) == typeof(g)
   @assert size(old_g)   == size(g)
 
-  node_indeg = ps["node_indeg"]
-  node_outdeg = ps["node_outdeg"]
+  node_indeg = ps[Int(NODE_INDEG)]
+  node_outdeg = ps[Int(NODE_OUTDEG)]
 
   for i in eachindex(g)
     curr_group, old_group = g[i],old_g[i]
@@ -207,13 +208,14 @@ function SBMs.considermoves(sbm::PoisSBM, i, g=nothing, ps=nothing; forcemove=tr
 
   gi = g[i]
 
-  g_type = collect(filter( x -> gi in x, sbm.t ))
-  @assert length(g_type) == 1 "Group exists within multilple types"
+  gi_type = gi in sbm.t[1] ? sbm.t[1] : sbm.t[2]
+  # g_type = collect(filter( x -> gi in x, sbm.t ))
+  # @assert length(g_type) == 1 "Group exists within multilple types"
 
   moves = Int[]
   logliks = Float64[]
 
-  for group in g_type[1]
+  for group in gi_type #g_type[1]
 
     if gi == group && forcemove  continue  end
 
@@ -230,15 +232,15 @@ end
 
 function tweak_params(ps, i, orig_group, new_group)
 
-  cluster_counts = copy(ps["cluster_counts"])
+  cluster_counts = copy(ps[Int(CL_COUNTS)])
 
   cluster_counts[orig_group] -= 1
   cluster_counts[new_group]  += 1
 
-  nbor_incls = ps["node_indeg"][i,:]
-  nbor_outcls = ps["node_outdeg"][i,:]
+  nbor_incls = ps[Int(NODE_INDEG)][i,:]
+  nbor_outcls = ps[Int(NODE_OUTDEG)][i,:]
 
-  cl_edges = copy(ps["cluster_edge_counts"])
+  cl_edges = copy(ps[Int(CL_EDGE_COUNTS)])
 
   for cl in eachindex(nbor_incls)
     cl_edges[orig_group,cl] -= nbor_outcls[cl]
@@ -248,10 +250,11 @@ function tweak_params(ps, i, orig_group, new_group)
     cl_edges[cl,new_group]  += nbor_incls[cl]
   end
 
-  Dict( "cluster_counts" => cluster_counts,
-        "cluster_indeg"  => sum(cl_edges,1),
-        "cluster_outdeg" => sum(cl_edges,2),
-        "cluster_edge_counts"  => cl_edges )
+  cl_indeg = sum(cl_edges,1)
+  cl_outdeg = sum(cl_edges,2)
+
+  Any[ cluster_counts, nothing, nothing,
+       cl_indeg, cl_outdeg, cl_edges ]
 end
 
 
@@ -260,10 +263,10 @@ function SBMs.loglikelihood(sbm::PoisSBM, g=nothing, ps=nothing)
   if g == nothing   g = sbm.g                  end
   if ps == nothing  ps = computeparams(sbm,g)  end
 
-  cl_count    = ps["cluster_counts"]
-  cl_indeg    = ps["cluster_indeg"]
-  cl_outdeg   = ps["cluster_outdeg"]
-  edge_counts = ps["cluster_edge_counts"]
+  cl_count    = ps[Int(CL_COUNTS)]
+  cl_indeg    = ps[Int(CL_INDEG)]
+  cl_outdeg   = ps[Int(CL_OUTDEG)]
+  edge_counts = ps[Int(CL_EDGE_COUNTS)]
 
   ll = 0
 
@@ -284,6 +287,7 @@ function SBMs.loglikelihood(sbm::PoisSBM, g=nothing, ps=nothing)
     if denom == 0  continue  end
 
     m_rs = edge_counts[r,s]
+
     ll += m_rs*log(m_rs/(denom))
   end
 
