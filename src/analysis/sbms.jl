@@ -142,6 +142,7 @@ function fill_G!(G::SparseMatrixCSC, g, dists, dir)
   for i in 1:n, j in 1:n
 
     gi,gj = g[i], g[j]
+
     dist = dists[gi,gj]
 
     v = rand(dist)
@@ -151,6 +152,20 @@ function fill_G!(G::SparseMatrixCSC, g, dists, dir)
     if !dir  G[j,i] = v  end
   end
 
+end
+
+
+"""
+
+    fill_degcorr_G!(G::SparseMatrixCSC, g, dists, dir)
+
+  Fills the graph matrix with edges depending upon the group
+distributions within dists. Sampling from the distribution at
+index `[i,j]` should instantiate an edge/multiedge between
+a node in group `i` and a node in group `j`.
+"""
+function fill_degcorr_G!(G::SparseMatrixCSC, g, dists, dir)
+  0#stub
 end
 
 
@@ -171,6 +186,8 @@ function randomize_g(g, group_types)
 
   rand_g
 end
+
+randomize_g!(sbm::SBM) = setgroups(sbm, randomize_g(sbm.g, sbm.t))
 
 
 """
