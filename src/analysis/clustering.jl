@@ -37,7 +37,7 @@ function reweight_adj!(adj)
     nzs = nonzeros(adj)
     for i in 1:length(nzs)
         nzs[i] = log(nzs[i])
-    end 
+    end
 end
 
 """
@@ -72,7 +72,7 @@ Inputs:
     filter_ids: list of segment IDs that should be included
 """
 function create_graph_dicts(edges, filter_ids)
-    
+
     function push_dict!(d, k, v)
         if !haskey(d, k)
             d[k] = Array{Int64,1}()
@@ -223,20 +223,25 @@ function create_weighted_adjacency_matrix(seg_to_index, syn_to_segs, syn_size)
         u, v = seg_to_index[pre], seg_to_index[post]
         adj[u,v] += syn_size[syn]
     end
-    return adj    
+    return adj
 end
 
 """
+
+    create_connectivity_adjacency_matrix(seg_to_index, syn_to_segs, binary=true)
+    
 Create (sparse) adjacency matrix with normalized synapse size as weight
 """
-function create_connectivity_adjacency_matrix(seg_to_index, syn_to_segs)
+function create_connectivity_adjacency_matrix(seg_to_index, syn_to_segs, binary=true)
     n = length(seg_to_index)
     adj = spzeros(n,n)
     for (syn, (pre, post)) in syn_to_segs
         u, v = seg_to_index[pre], seg_to_index[post]
-        adj[u,v] = 1
+        if binary  adj[u,v] = 1
+        else       adj[u,v] += 1
+        end
     end
-    return adj    
+    return adj
 end
 
 """
@@ -332,7 +337,7 @@ function get_sorted_cluster_ranges(cluster)
     for (id, c) in zip(cluster_ids, cluster_counts)
         l = k+c-1
         cluster_ranges[id] = (k:l)
-        k = l+1 
+        k = l+1
     end
     return cluster_ranges
 end
@@ -358,7 +363,7 @@ Create dict for cluster ID to table of pre ID & post IDs
 function get_cluster_to_pre_post(perm, adj, index_to_seg, cluster_ranges)
     cluster_to_pre_post = Dict()
     for (cluster_id, cluster_range) in cluster_ranges
-        pre_segs, post_segs = get_segment_ids(perm, adj, index_to_seg, 
+        pre_segs, post_segs = get_segment_ids(perm, adj, index_to_seg,
                                                 cluster_range, cluster_range)
         cluster_tbl = hcat(pre_segs, post_segs)
         cluster_to_pre_post[cluster_id] = cluster_tbl
@@ -375,7 +380,7 @@ function get_pair_cluster_to_pre_post(perm, adj, index_to_seg, cluster_ranges)
     cluster_to_pre_post = Dict()
     for (id_A, range_A) in cluster_ranges
         for (id_B, range_B) in cluster_ranges
-            pre_segs, post_segs = get_segment_ids(perm, adj, index_to_seg, 
+            pre_segs, post_segs = get_segment_ids(perm, adj, index_to_seg,
                                                             range_A, range_B)
             cluster_tbl = hcat(pre_segs, post_segs)
             cluster_to_pre_post[(id_A,id_B)] = cluster_tbl
@@ -407,7 +412,7 @@ end
 For given range of adj matrix, write out post & pre pairs & list of all seg IDs
 """
 function write_cluster(dir, index_to_seg, adj, perm, pre_range, post_range)
-    pre_segs, post_segs = get_segment_ids(index_to_seg, adj, perm, 
+    pre_segs, post_segs = get_segment_ids(index_to_seg, adj, perm,
                                                 pre_range, post_range)
     dt = Dates.format(Dates.today(), "yymmdd")
     cluster_name = string("$(dt)_cluster_20000_random_$(pre_range[1])-$(pre_range[end])_$(post_range[1])-$(post_range[end]).csv")
