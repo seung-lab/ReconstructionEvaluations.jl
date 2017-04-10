@@ -152,7 +152,8 @@ def remap(map_dict, seg_list):
     """
     for x in np.nditer(seg_list, op_flags=['readwrite']):
         # not in map, object maps to itself
-        x[...] = map_dict[int(x)]
+        if int(x) in map_dict: 
+            x[...] = map_dict[int(x)]
 
 def find_nearest(pt, pts):
     """Find points in pts that's nearest to pt (return first closest)
@@ -198,4 +199,19 @@ def remap_synapse_centroids_from_pickle(edges, pre_post_dicts):
     return new_edges
 
 def load_map_dict(fn):
+    """Load a Python pickled dict mapping old IDs to new IDs
+    """
     return pickle.load(open(fn, "rb"))
+
+def remap_edge_list(map_fn, edge_fn, new_fn):
+    map_dict = load_map_dict(map_fn)
+    edges = load_edges(edge_fn)
+    remap(map_dict, edges[:,1])
+    remap(map_dict, edges[:,2])
+    save_edges(new_fn, edges)
+
+def remap_seg_list(map_fn, seg_fn, new_fn):
+    map_dict = load_map_dict(map_fn)
+    segs = np.genfromtxt(seg_fn, delimiter=";", dtype=int)
+    remap(map_dict, segs[:,0])
+    np.savetxt(new_fn, segs, delimiter=';', fmt='%d')
