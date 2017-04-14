@@ -108,7 +108,7 @@ function SBMs.updateparams!(sbm::PoisSBM, ps, old_g, g=nothing)
 
   if g == nothing  g = sbm.g  end
 
-  update_group_counts!(ps, old_g)
+  update_group_counts!(ps, g)
   update_node_degrees!(sbm, ps, old_g, g)
 
   cl_indeg, cl_outdeg, cl_edges = group_degrees(ps[Int(NODE_INDEG)],
