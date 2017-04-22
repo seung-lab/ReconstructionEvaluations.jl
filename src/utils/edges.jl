@@ -197,3 +197,9 @@ function create_prepost_edge_mask(edges, pre_post, post_only_count)
     end
     return edge_prepost_filter
 end
+
+"""
+Given a list of vertices and edges, return connected components
+"""
+function find_connected_components(v, e)
+end
