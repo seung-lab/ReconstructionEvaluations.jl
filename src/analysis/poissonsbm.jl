@@ -20,6 +20,9 @@ type PoisSBM <: SBM
 
 end
 
+# Just a helper "copy" constructor mainly for situations when the identified type has changed after a package reload
+PoisSBM(x) = PoisSBM(x.G, copy(x.g), x.t, copy(x.dir), copy(x.degcorr))
+
 #Each "ps" is an Any[] with the following fields (Dicts were REALLY slow...)
 @enum PARAMFIELDS CL_COUNTS=1 NODE_INDEG=2 NODE_OUTDEG=3 CL_INDEG=4 CL_OUTDEG=5 CL_EDGE_COUNTS=6
 
@@ -108,7 +111,7 @@ function SBMs.updateparams!(sbm::PoisSBM, ps, old_g, g=nothing)
 
   if g == nothing  g = sbm.g  end
 
-  update_group_counts!(ps, old_g)
+  update_group_counts!(ps, g)
   update_node_degrees!(sbm, ps, old_g, g)
 
   cl_indeg, cl_outdeg, cl_edges = group_degrees(ps[Int(NODE_INDEG)],
