@@ -40,14 +40,8 @@ class Controller:
         and neuroglancer view and calls model to read/write segments/synapses
         and their classifications
     """
-    def __init__(self):
-        self.ui = UI(self.next_segment_event, self.prev_segment_event, \
-                        self.segment_select_event, self.toggle_segments_event, \
-                        self.toggle_spines_event, self.toggle_shafts_event, \
-                        self.toggle_seg_label_1_event, \
-                        self.toggle_seg_label_2_event, \
-                        self.toggle_seg_label_3_event, \
-                        self.toggle_seg_label_4_event)
+    def __init__(self, headless=True):
+
         self.synapses = []
         self.segments_on = 0
         self.shafts_on = 1
@@ -56,19 +50,29 @@ class Controller:
         self.seg_label_2_on = 1
         self.seg_label_3_on = 1
         self.seg_label_4_on = 1
-        self.ui.start()
+        if not headless:
+            self.ui = UI(self.next_segment, self.prev_segment, \
+                        self.segment_select, self.toggle_segments, \
+                        self.toggle_spines, self.toggle_shafts, \
+                        self.toggle_seg_label_1, \
+                        self.toggle_seg_label_2, \
+                        self.toggle_seg_label_3, \
+                        self.toggle_seg_label_4)
+            self.ui.start()
 
     def update_display(self):
-        self.update_synapses()
-        self.update_segments()
+        syn = self.update_synapses()
+        segs = self.update_segments()
         broadcast()
+        return syn, segs
 
-    def segment_select_event(self, event):
+    def set_segment(self, seg_id):
+        model.set_segment(seg_id)
+        return self.update_display()
+
+    def segment_select(self, event):
         seg_id = self.ui.get_segment_id()
         model.set_segment(seg_id)
-        self.display_segment(seg_id)
-
-    def display_segment(self, seg_id):
         self.ui.set_segment_id(seg_id)
         self.update_display()
 
@@ -91,55 +95,62 @@ class Controller:
         coords = model.get_synapse_coords(self.synapses)
         current_state['layers']['synapses'] = {'type':'point', \
                                                         'points':coords}
+        return self.synapses
+
+    def get_segments(self):
+        if 'segments' in current_state['layers']['segmentation']:
+            return current_state['layers']['segmentation']['segments']
+        else:
+            return []
 
     def update_segments(self):
         segments = [model.get_segment_id()]
         if self.segments_on:
             segments.extend(model.get_segments_from_synapses(self.synapses))
-            print(segments)
         current_state['layers']['segmentation']['segments'] = segments
+        return segments
 
-    def toggle_segments_event(self):
-        self.segments_on = self.ui.get_segments_on()
-        self.update_display()
+    def toggle_segments(self):
+        self.segments_on = 0 if self.segments_on else 1
+        return self.update_display()
 
-    def toggle_shafts_event(self):
-        self.shafts_on = self.ui.get_shafts_on()
-        self.update_display()
+    def toggle_shafts(self):
+        self.shafts_on = 0 if self.shafts_on else 1
+        return self.update_display()
 
-    def toggle_spines_event(self):
-        self.spines_on = self.ui.get_spines_on()
-        self.update_display()
+    def toggle_spines(self):
+        self.spines_on = 0 if self.spines_on else 1
+        return self.update_display()
 
-    def toggle_seg_label_1_event(self):
-        self.seg_label_1_on = self.ui.get_seg_label_1()
-        self.update_display()
+    def toggle_seg_label_1(self):
+        self.seg_label_1_on = 0 if self.seg_label_1_on else 1
+        return self.update_display()
 
-    def toggle_seg_label_2_event(self):
-        self.seg_label_2_on = self.ui.get_seg_label_2()
-        self.update_display()
+    def toggle_seg_label_2(self):
+        self.seg_label_2_on = 0 if self.seg_label_2_on else 1
+        return self.update_display()
 
-    def toggle_seg_label_3_event(self):
-        self.seg_label_3_on = self.ui.get_seg_label_3()
-        self.update_display()
+    def toggle_seg_label_3(self):
+        self.seg_label_3_on = 0 if self.seg_label_3_on else 1
+        return self.update_display()
 
-    def toggle_seg_label_4_event(self):
-        self.seg_label_4_on = self.ui.get_seg_label_4()
-        self.update_display()
+    def toggle_seg_label_4(self):
+        self.seg_label_4_on = 0 if self.seg_label_4_on else 1
+        return self.update_display()
 
     def set_voxelCoordinates(self, new_pos):
         """Set the voxelCoordinates to the numpy list"""
         current_state['navigation']['pose']['position']['voxelCoordinates'] = new_pos
         
-    def next_segment_event(self):
-        seg_id = model.next_segment()
-        self.display_segment(seg_id)
+    # def next_segment(self):
+    #     seg_id = model.next_segment()
+    #     self.display_segment(seg_id)
 
-    def prev_segment_event(self):
-        seg_id = model.prev_segment()
-        self.display_segment(seg_id)
+    # def prev_segment(self):
+    #     seg_id = model.prev_segment()
+    #     self.display_segment(seg_id)
 
-    def synapse_select_event(evt):
+    def synapse_select(evt):
         raise NotImplementedError
 
     def shutdown(evt):

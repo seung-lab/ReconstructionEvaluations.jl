@@ -182,6 +182,15 @@ class Model(object):
         """
         return self.segment.get_neighbors_by_label(label)
 
+    def get_common_segs(self, segments):
+        common_segs = {}
+        for seg in segments:
+            neighbors = self.edge_dict['seg_to_neighbors'][seg]
+            for n in neighbors:
+                edges.push_dict(common_segs, n, seg)
+        return common_segs
+
+
 #Tests
 if __name__ == '__main__':
     pass
