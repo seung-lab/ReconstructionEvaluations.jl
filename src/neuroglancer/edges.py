@@ -236,3 +236,15 @@ def load_labels(fn, delimiter=',', id_col=0, label_col=1):
         push_dict(label_to_id, d[i,label_col], d[i,id_col])
         id_to_label[d[i,id_col]] = d[i,label_col]
     return label_to_id, id_to_label
+
+def include_unlabeled(label_to_id, id_to_label, ids):
+    """
+    Include labels of -1 for elements not in label dicts
+
+    See load_labels for inputs
+    """
+    for i in ids:
+        if i not in id_to_label:
+            push_dict(id_to_label, i, -1)
+            push_dict(label_to_id, -1, i)
+    return label_to_id, id_to_label

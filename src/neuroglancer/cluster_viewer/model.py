@@ -101,12 +101,18 @@ class Model(object):
         offset = np.array([17409,16385,16385])
         e = edges.load_edges(edges_fn, offset=offset)
         self.edge_dict = edges.create_edge_dict(e)
+        segs = self.edge_dict['seg_to_neighbors'].keys()
+        syns = self.edge_dict['syn_to_segs'].keys()
         label_to_segs, seg_to_label = edges.load_labels(seg_label_fn, 
                                     delimiter='\t', id_col=1, label_col=2)
+        label_to_segs, seg_to_label = include_unlabeled(label_to_segs, 
+                                    seg_to_label, segs)
         self.edge_dict['label_to_segs'] = label_to_segs
         self.edge_dict['seg_to_label'] = seg_to_label
         label_to_syn, syn_to_label = edges.load_labels(syn_label_fn, 
                                     delimiter=',', id_col=0, label_col=1)
+        label_to_syn, syn_to_label = include_unlabeled(label_to_syn, 
+                                    syn_to_label, syns)        
         self.edge_dict['label_to_syn'] = label_to_syn
         self.edge_dict['syn_to_label'] = syn_to_label
 
