@@ -7,6 +7,9 @@ from sockjs.tornado import SockJSConnection, SockJSRouter
 import json
 from collections import OrderedDict
 
+url = "https://neuromancer-seung-import.appspot.com/#!{'layers':{'image':{'type':'image'_'source':'precomputed://glance://s1_v0/image'}_'segmentation':{'type':'segmentation'_'source':'precomputed://glance://s1_v0/segmentation_0.2'_'selectedAlpha':0.44}}_'navigation':{'pose':{'position':{'voxelSize':[6_6_30]_'voxelCoordinates':[7648.091796875_4767.28564453125_1267.79638671875]}}_'zoomFactor':2.7094874095355532}_'layout':'xy-3d'_'perspectiveOrientation':[-0.4056483507156372_-0.5968747735023499_-0.42320775985717773_0.5478002429008484]_'perspectiveZoom':443.6340451771268_'showSlices':false_'stateURL':'https://localhost:9999'}"
+print(url)
+
 # need to run controller from ReconstructionEvaluations/src/neuroglancer
 sys.path.append("../neuroglancer")
 from model import Model
@@ -44,12 +47,12 @@ class Controller:
 
         self.synapses = []
         self.segments_on = 0
-        self.shafts_on = 1
-        self.spines_on = 1
-        self.seg_label_1_on = 1
-        self.seg_label_2_on = 1
-        self.seg_label_3_on = 1
-        self.seg_label_4_on = 1
+        self.synapse_label_switch = {}
+        for k in model.edge_dict['label_to_syn'].keys():
+            self.synapse_label_switch[k] = 1
+        self.segment_label_switch = {}
+        for k in model.edge_dict['label_to_segs'].keys():
+            self.segment_label_switch[k] = 1
         if not headless:
             self.ui = UI(self.next_segment, self.prev_segment, \
                         self.segment_select, self.toggle_segments, \
@@ -77,65 +80,65 @@ class Controller:
         self.update_display()
 
     def update_synapses(self):
-        shaft_spine = set()
-        seg_labels = set()
-        if self.shafts_on == 1:
-            shaft_spine = shaft_spine.union(model.get_synapses_by_label(0))
-        if self.spines_on == 1:
-            shaft_spine = shaft_spine.union(model.get_synapses_by_label(1))
-        if self.seg_label_1_on == 1:
-            seg_labels = seg_labels.union(model.get_synapses_by_neighbor_label(1))
-        if self.seg_label_2_on == 1:
-            seg_labels = seg_labels.union(model.get_synapses_by_neighbor_label(2))
-        if self.seg_label_3_on == 1:
-            seg_labels = seg_labels.union(model.get_synapses_by_neighbor_label(3))
-        if self.seg_label_4_on == 1:
-            seg_labels = seg_labels.union(model.get_synapses_by_neighbor_label(4))
-        self.synapses = list(shaft_spine & seg_labels)
+        syn_label = set()
+        syn_segs = set()
+        for k,v in self.synapse_label_switch.iteritems():
+            if v == 1:
+                syn_label = syn_label.union(model.get_synapses_by_label(k)) 
+        for k,v in self.segment_label_switch.iteritems():
+            if v == 1:
+                syn_segs = syn_segs.union(model.get_synapses_by_neighbor_label(k))
+        self.synapses = list(syn_label & syn_segs)
         coords = model.get_synapse_coords(self.synapses)
-        current_state['layers']['synapses'] = {'type':'point', \
-                                                        'points':coords}
+        self.set_coords(coords)
         return self.synapses
 
     def get_segments(self):
         if 'segments' in current_state['layers']['segmentation']:
-            return current_state['layers']['segmentation']['segments']
+            return map(int, current_state['layers']['segmentation']['segments'])
         else:
             return []
+
+    def display_coords(self, coords):
+        self.set_coords(coords)
+        broadcast()
+
+    def display_segments(self, segments):
+        self.set_segments(segments)
+        broadcast()
+
+    def set_coords(self, coords):
+        current_state['layers']['synapses'] = {'type':'point', \
+                                                        'points':coords}
+
+    def set_segments(self, segs):
+        current_state['layers']['segmentation']['segments'] = segs
 
     def update_segments(self):
         segments = [model.get_segment_id()]
         if self.segments_on:
             segments.extend(model.get_segments_from_synapses(self.synapses))
-        current_state['layers']['segmentation']['segments'] = segments
+        self.set_segments(segments)
         return segments
 
     def toggle_segments(self):
+        """Toggle whether segments are displayed or not
+        """
         self.segments_on = 0 if self.segments_on else 1
         return self.update_display()
 
-    def toggle_shafts(self):
-        self.shafts_on = 0 if self.shafts_on else 1
+    def toggle_synapse_label(self, label):
+        """Toggle display of synapses with label
+        """
+        switch = self.synapse_label_switch[label]
+        self.synapse_label_switch[label] = 0 if switch == 1 else 1
         return self.update_display()
 
-    def toggle_spines(self):
-        self.spines_on = 0 if self.spines_on else 1
-        return self.update_display()
-
-    def toggle_seg_label_1(self):
-        self.seg_label_1_on = 0 if self.seg_label_1_on else 1
-        return self.update_display()
-
-    def toggle_seg_label_2(self):
-        self.seg_label_2_on = 0 if self.seg_label_2_on else 1
-        return self.update_display()
-
-    def toggle_seg_label_3(self):
-        self.seg_label_3_on = 0 if self.seg_label_3_on else 1
-        return self.update_display()
-
-    def toggle_seg_label_4(self):
-        self.seg_label_4_on = 0 if self.seg_label_4_on else 1
+    def toggle_segment_label(self, label):
+        """Toggle display of segments with label
+        """
+        switch = self.segment_label_switch[label]
+        self.segment_label_switch[label] = 0 if switch == 1 else 1
         return self.update_display()
 
     def set_voxelCoordinates(self, new_pos):

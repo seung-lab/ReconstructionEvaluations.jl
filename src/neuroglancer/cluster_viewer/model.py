@@ -2,6 +2,7 @@ import edges
 import copy
 import h5py
 import numpy as np
+from collections import Counter
 
 class Segment(object):
 
@@ -38,9 +39,10 @@ class Segment(object):
             segs_to_syn = self.edge_dict['segs_to_syn']
             for seg in self.neighbor_labels[label]:
                 k = (self.seg_id, seg)
-                if self.prepost == 1:
-                    k = (seg, self.seg_id)
-                synapses.extend(segs_to_syn[k])
+                if (seg, self.seg_id) in segs_to_syn:
+                    synapses.extend(segs_to_syn[(seg, self.seg_id)])
+                if (self.seg_id, seg) in segs_to_syn:
+                    synapses.extend(segs_to_syn[(self.seg_id, seg)])
         return synapses
 
     def get_neighbors(self):
@@ -105,13 +107,13 @@ class Model(object):
         syns = self.edge_dict['syn_to_segs'].keys()
         label_to_segs, seg_to_label = edges.load_labels(seg_label_fn, 
                                     delimiter='\t', id_col=1, label_col=2)
-        label_to_segs, seg_to_label = include_unlabeled(label_to_segs, 
+        label_to_segs, seg_to_label = edges.include_unlabeled(label_to_segs, 
                                     seg_to_label, segs)
         self.edge_dict['label_to_segs'] = label_to_segs
         self.edge_dict['seg_to_label'] = seg_to_label
         label_to_syn, syn_to_label = edges.load_labels(syn_label_fn, 
                                     delimiter=',', id_col=0, label_col=1)
-        label_to_syn, syn_to_label = include_unlabeled(label_to_syn, 
+        label_to_syn, syn_to_label = edges.include_unlabeled(label_to_syn, 
                                     syn_to_label, syns)        
         self.edge_dict['label_to_syn'] = label_to_syn
         self.edge_dict['syn_to_label'] = syn_to_label
@@ -188,6 +190,9 @@ class Model(object):
         """
         return self.segment.get_neighbors_by_label(label)
 
+    def count_elements(self, collection):
+        return Counter(collection)
+
     def get_common_segs(self, segments):
         common_segs = {}
         for seg in segments:
@@ -195,6 +200,11 @@ class Model(object):
             for n in neighbors:
                 edges.push_dict(common_segs, n, seg)
         return common_segs
+
+    def get_shared_segs(self, common_segs, n=1):
+        """Filter only common segs that have at least n shared segs
+        """
+        return {k:v for k,v in common_segs.iteritems() if len(v) >= n}
 
 
 #Tests

@@ -245,6 +245,6 @@ def include_unlabeled(label_to_id, id_to_label, ids):
     """
     for i in ids:
         if i not in id_to_label:
-            push_dict(id_to_label, i, -1)
+            id_to_label[i] = -1
             push_dict(label_to_id, -1, i)
     return label_to_id, id_to_label
