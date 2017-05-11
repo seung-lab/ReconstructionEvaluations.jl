@@ -12,47 +12,69 @@ class Segment(object):
         self.edge_dict = edge_dict
         self.seg_id = seg_id
         self.prepost = edge_dict['seg_prepost'][seg_id]
-        self.label = edge_dict['seg_to_label'][seg_id]
+        # self.label = edge_dict['seg_to_label'][seg_id]
         self.neighbors = edge_dict['seg_to_neighbors'][seg_id]
-        self.neighbor_labels = {}
-        for neighbor_id in self.neighbors:
-            k = edge_dict['seg_to_label'][neighbor_id]
-            edges.push_dict(self.neighbor_labels, k, neighbor_id)
+        # self.neighbor_labels = {}
+        # for neighbor_id in self.neighbors:
+        #     k = edge_dict['seg_to_label'][neighbor_id]
+        #     edges.push_dict(self.neighbor_labels, k, neighbor_id)
         self.synapses = edge_dict['seg_to_syn'][seg_id]
-        self.synapse_labels = {}
-        for syn_id in self.synapses:
-            k = edge_dict['syn_to_label'][syn_id]
-            edges.push_dict(self.synapse_labels, k, syn_id)
+        # self.synapse_labels = {}
+        # for syn_id in self.synapses:
+        #     k = edge_dict['syn_to_label'][syn_id]
+        #     edges.push_dict(self.synapse_labels, k, syn_id)
 
     def get_synapses(self):
         return self.synapses
 
-    def get_synapses_by_label(self, label):
-        if label in self.synapse_labels:
-            return self.synapse_labels[label]
-        else:
-            return []
+    # def get_synapses_by_label(self, label):
+    #     if label in self.synapse_labels:
+    #         return self.synapse_labels[label]
+    #     else:
+    #         return []
 
-    def get_synapses_by_neighbor_label(self, label):
-        synapses = []
-        if label in self.neighbor_labels:
-            segs_to_syn = self.edge_dict['segs_to_syn']
-            for seg in self.neighbor_labels[label]:
-                k = (self.seg_id, seg)
-                if (seg, self.seg_id) in segs_to_syn:
-                    synapses.extend(segs_to_syn[(seg, self.seg_id)])
-                if (self.seg_id, seg) in segs_to_syn:
-                    synapses.extend(segs_to_syn[(self.seg_id, seg)])
-        return synapses
+    # def get_synapses_by_neighbor_label(self, label):
+    #     synapses = []
+    #     if label in self.neighbor_labels:
+    #         segs_to_syn = self.edge_dict['segs_to_syn']
+    #         for seg in self.neighbor_labels[label]:
+    #             k = (self.seg_id, seg)
+    #             if (seg, self.seg_id) in segs_to_syn:
+    #                 synapses.extend(segs_to_syn[(seg, self.seg_id)])
+    #             if (self.seg_id, seg) in segs_to_syn:
+    #                 synapses.extend(segs_to_syn[(self.seg_id, seg)])
+    #     return synapses
+
+    def get_shared_synapses(self, neighbor_id):
+        """Return synapses between seg and neighbor
+        """
+        pre = []
+        post = []
+        k = (self.seg_id, neighbor_id)
+        if k in self.edge_dict['segs_to_syn']:
+            pre = self.edge_dict['segs_to_syn'][k]
+        k = (neighbor_id, self.seg_id)
+        if k in self.edge_dict['segs_to_syn']:
+            post = self.edge_dict['segs_to_syn'][k]
+        return pre, post
+        
+    def get_neighbors_with_rank(self):
+        """Return list of tuples: (neighbor_id, no. synapses shared)
+        """
+        rank = []
+        for n in self.neighbors:
+            shared_synapses = self.get_shared_synapses(n)
+            rank.append((n, len(shared_synapses[0]), len(shared_synapses[1])))
+        return rank
 
     def get_neighbors(self):
         return self.neighbors
 
-    def get_neighbors_by_label(self, label):
-        if label in self.neighbor_labels:
-            return self.neighbor_labels[label]
-        else:
-            return []
+    # def get_neighbors_by_label(self, label):
+    #     if label in self.neighbor_labels:
+    #         return self.neighbor_labels[label]
+    #     else:
+    #         return []
 
     # def __str__(self):
     #     s  = "seg id:\t" + str(self.seg_id) + "\n"
@@ -69,18 +91,18 @@ class Segment(object):
     def __repr__(self):
         s  = "seg id:\t" + str(self.seg_id) + "\n"
         s += ("pre" if self.prepost == 0 else "post") + "\n"
-        s += "label:\t" + str(self.label) + "\n"
+        # s += "label:\t" + str(self.label) + "\n"
         s += "neighbors:\t" + str(len(self.neighbors)) + "\n"
-        for k,v in self.neighbor_labels.iteritems():
-            s += "\t" + str(k) + ":\t" + str(len(v)) + "\n"
+        # for k,v in self.neighbor_labels.iteritems():
+        #     s += "\t" + str(k) + ":\t" + str(len(v)) + "\n"
         s += "synapses:\t" + str(len(self.synapses)) + "\n"
-        for k,v in self.synapse_labels.iteritems():
-            s += "\t" + str(k) + ":\t" + str(len(v)) + "\n"
+        # for k,v in self.synapse_labels.iteritems():
+        #     s += "\t" + str(k) + ":\t" + str(len(v)) + "\n"
         return s
 
 class Model(object):
 
-    def __init__(self, edges_fn, seg_label_fn, syn_label_fn):
+    def __init__(self, edges_fn):
         """Model object governs the edge dictionaries
 
         Attributes:
@@ -94,29 +116,18 @@ class Model(object):
         self.segment = None
         self.index = 0
 
-        self.read_data(edges_fn, seg_label_fn, syn_label_fn)
+        self.read_data(edges_fn)
         self.create_segment_list()
 
-    def read_data(self, edges_fn, seg_label_fn, syn_label_fn):
+    def read_data(self, edges_fn):
         """Reads data from csv file, filename, and processes it into dict
         """
-        offset = np.array([17409,16385,16385])
+        # offset = np.array([17409,16385,16385])
+        offset = np.array([0,0,0])
         e = edges.load_edges(edges_fn, offset=offset)
         self.edge_dict = edges.create_edge_dict(e)
         segs = self.edge_dict['seg_to_neighbors'].keys()
         syns = self.edge_dict['syn_to_segs'].keys()
-        label_to_segs, seg_to_label = edges.load_labels(seg_label_fn, 
-                                    delimiter='\t', id_col=1, label_col=2)
-        label_to_segs, seg_to_label = edges.include_unlabeled(label_to_segs, 
-                                    seg_to_label, segs)
-        self.edge_dict['label_to_segs'] = label_to_segs
-        self.edge_dict['seg_to_label'] = seg_to_label
-        label_to_syn, syn_to_label = edges.load_labels(syn_label_fn, 
-                                    delimiter=',', id_col=0, label_col=1)
-        label_to_syn, syn_to_label = edges.include_unlabeled(label_to_syn, 
-                                    syn_to_label, syns)        
-        self.edge_dict['label_to_syn'] = label_to_syn
-        self.edge_dict['syn_to_label'] = syn_to_label
 
     def create_segment_list(self):
         """Creates a list of unique segments in edge_dict"""
@@ -162,13 +173,13 @@ class Model(object):
         """
         return self.segment.get_synapses()
 
-    def get_synapses_by_label(self, label):
-        """Get current segment's synapses by label
-        """
-        return self.segment.get_synapses_by_label(label)
+    # def get_synapses_by_label(self, label):
+    #     """Get current segment's synapses by label
+    #     """
+    #     return self.segment.get_synapses_by_label(label)
 
-    def get_synapses_by_neighbor_label(self, label):
-        return self.segment.get_synapses_by_neighbor_label(label)
+    # def get_synapses_by_neighbor_label(self, label):
+    #     return self.segment.get_synapses_by_neighbor_label(label)
 
     def get_segments_from_synapses(self, synapses):
         """Given set of synapses, return list of attached segments
@@ -185,10 +196,10 @@ class Model(object):
         """
         return self.segment.get_neighbors()
 
-    def get_neighbors_by_label(self, label):
-        """Get neighbors of current segment by label
-        """
-        return self.segment.get_neighbors_by_label(label)
+    # def get_neighbors_by_label(self, label):
+    #     """Get neighbors of current segment by label
+    #     """
+    #     return self.segment.get_neighbors_by_label(label)
 
     def count_elements(self, collection):
         return Counter(collection)

@@ -26,7 +26,7 @@ def load_edges(fn, synaptor=False, offset=np.array([0,0,0])):
     if synaptor:
         edges = []
         with open(fn, 'rb') as f:
-            edge_reader = csv.reader(f, delimiter=';')
+            edge_reader = csv.reader(f, delimiter=';', )
             for row in edge_reader:
                 print(row)
                 seg_ids =  make_tuple(row[1])
