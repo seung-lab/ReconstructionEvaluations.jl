@@ -54,6 +54,29 @@ class Segment(object):
         else:
             return []
 
+    def get_shared_synapses(self, neighbor_id):
+        """Return synapses between seg and neighbor
+        """
+        pre = []
+        post = []
+        k = (self.seg_id, neighbor_id)
+        if k in self.edge_dict['segs_to_syn']:
+            pre = self.edge_dict['segs_to_syn'][k]
+        k = (neighbor_id, self.seg_id)
+        if k in self.edge_dict['segs_to_syn']:
+            post = self.edge_dict['segs_to_syn'][k]
+        return pre, post
+        
+
+    def get_neighbors_with_rank(self):
+        """Return list of tuples: (neighbor_id, no. synapses shared)
+        """
+        rank = []
+        for n in self.neighbors:
+            shared_synapses = self.get_shared_synapses(n)
+            rank.append((n, len(shared_synapses[0]), len(shared_synapses[1])))
+        return rank
+
     # def __str__(self):
     #     s  = "seg id:\t" + str(self.seg_id) + "\n"
     #     s += ("pre" if self.prepost == 0 else "post") + "\n"
