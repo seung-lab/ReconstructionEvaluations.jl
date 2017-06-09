@@ -4,49 +4,6 @@ import pickle
 import h5py
 from ast import literal_eval as make_tuple
 
-def load_edges(fn, synaptor=False, offset=np.array([0,0,0])):
-    """Load edges csv from Synaptor as numpy array
-
-    Args:
-        fn: filepath to Synaptor edge csv file
-        synaptor: if edges are generated from synaptor or are plain csv
-            Synaptor generates edges as a csv with embedded lists
-            plain csv would be everything strictly separated by commas
-
-    Returns:
-        Nx7 numpy array:
-            [:,0] synapse ID
-            [:,1] pre seg ID
-            [:,2] post seg ID
-            [:,3:6] synapse centroid coordinates
-            [:,6] synapse psd voxel count
-            [:,7:] additional columns (e.g. pre & post coords)
-    """
-
-    if synaptor:
-        edges = []
-        with open(fn, 'rb') as f:
-            edge_reader = csv.reader(f, delimiter=';')
-            for row in edge_reader:
-                print(row)
-                seg_ids =  make_tuple(row[1])
-                coords = make_tuple(row[2])
-                edges.append([int(row[0]), seg_ids[0], seg_ids[1], 
-                        coords[0], coords[1], coords[2], int(row[3])])
-        e = np.array(edges)
-        e[:,3:6] -= offset 
-        return e
-    else:
-        e = np.genfromtxt(fn, delimiter=",", dtype=int)
-        e[:,3:6] -= offset 
-        return e
-
-
-def save_edges(fn, edges):
-    """Save out edge list as plain csv of ints
-    """
-    np.savetxt(fn, edges, delimiter=',', fmt='%d')
-
 def push_dict(d, k, v):
     """For dicts with lists, test key, then append to list
     """
@@ -60,76 +17,162 @@ def unique(d):
     for k, v in d.iteritems():
         d[k] = list(set(v))
 
-def create_edge_dict(edges):
-    """Produce list of look up dicts for fast edge querying
-    
-    Args:
-        edges: Nx7 array (see load_edges)
-            synapse id, pre seg id, post seg id, syn x coord, syn y coord,
-            syn z coord, psd voxel count
+class Edges(object):
 
-    Returns:
-        tuple of dicts
-            syn_to_segs: synapse ID returns pre & post seg IDs
+    def __init__(self, src_fn, dst_fn, offset=np.array([0,0,0])):
+        """Contains dictionaries for fast edge lookup & manipulation
+
+
+        Attributes:
+            src_fn: location of edges csv
+            dst_fn
+            syn_to_pre_seg: synapse ID returns pre ID
+            syn_to_post_seg: synapse ID returns post ID
             segs_to_syn: tuple of pre, post IDs looks up synapse ID
             syn_coords: synapse ID returns coords of its centroid
             syn_coords_pre_post: syn ID returns 2 coords - pre/post centroids
             syn_size: synapse ID returns its size (no. of voxels)
-            seg_to_syn: seg ID returns list of synapse IDs that connect it
-            seg_to_segs: seg ID returns list of connected seg IDs (pre)
-            post_to_pre: post seg ID returns list of connected pre seg
-            seg_to_prepost: seg ID returns pre or post label (0 or 1)
-    """
-    syn_to_segs = {}
-    segs_to_syn = {}
-    seg_to_syn = {}
-    syn_coords = {}
-    syn_size = {}
-    seg_to_neighbors = {}
-    syn_coords_pre_post = {}
-    seg_prepost = {}
+            pre_to_syns: seg ID returns list of presynaptic synapse IDs
+            post_to_syns: seg ID returns list of postsynaptic synapse IDs
+            post_to_pre: seg ID returns list of connected pre seg IDs
+            pre_to_post: seg ID returns list of connected post seg IDs
+        """
+        self.src_fn = src_fn
+        self.dst_fn = dst_fn
+        self.offset = offset
+        self.syn_to_pre_seg = {}
+        self.syn_to_post_seg = {}
+        self.segs_to_syn = {}
+        self.pre_to_syns = {}
+        self.post_to_syns = {}
+        self.syn_coords = {}
+        self.syn_coords_pre_post = {}
+        self.syn_size = {}
+        self.post_to_pre = {}
+        self.pre_to_post = {}
+        self.max_syn = 99999999
+        self.edit_stack = []
+        self.load()
 
-    for i in range(0, edges.shape[0]):
-        syn_to_segs[edges[i,0]] = edges[i,1:3].tolist()
-        syn_coords[edges[i,0]] = tuple(edges[i,3:6])
-        if edges.shape[1] > 7:
-            syn_coords_pre_post[edges[i,0]] = [edges[i,7:10].tolist(), 
-                                                        edges[i,10:13].tolist()]
+    def load(self):
+        """Load edges csv into set of dictionaries as object attributes
+
+        edges csv format
+            [:,0] synapse ID
+            [:,1] pre seg ID
+            [:,2] post seg ID
+            [:,3:6] synapse centroid coordinates
+            [:,6] synapse psd voxel count
+            [:,7:] additional columns (e.g. pre & post coords)
+        """
+        e = np.genfromtxt(self.src_fn, delimiter=",", dtype=int)
+        e[:,3:6] -= self.offset
+        e[:,7:10] -= self.offset 
+        e[:,10:13] -= self.offset 
+
+        for i in range(0, e.shape[0]):
+            self.syn_to_pre_seg[e[i,0]] = e[i,1]
+            self.syn_to_post_seg[e[i,0]] = e[i,2]
+            self.syn_coords[e[i,0]] = list(e[i,3:6])
+            if e.shape[1] > 7:
+                self.syn_coords_pre_post[e[i,0]] = [e[i,7:10].tolist(), 
+                                                        e[i,10:13].tolist()]
+            else:
+                self.syn_coords_pre_post[e[i,0]] = [syn_coords[e[i,0]], 
+                                                            syn_coords[e[i,0]]]
+            self.syn_size[e[i,0]] = e[i,6]
+            push_dict(self.segs_to_syn, tuple(e[i,1:3].tolist()), e[i,0])
+            push_dict(self.pre_to_syns, e[i,1], e[i,0])
+            push_dict(self.post_to_syns, e[i,2], e[i,0])
+            push_dict(self.post_to_pre, e[i,2], e[i,1])
+            push_dict(self.pre_to_post, e[i,1], e[i,2])
+
+        unique(self.post_to_pre)
+        unique(self.pre_to_post)
+        self.max_syn = np.max(np.array(self.syn_coords.keys()))
+
+    def save(self):
+        """Write set of edge dicts back to edges csv file
+        """
+        with open(self.dst_fn, 'wb') as f:
+            w = csv.writer(f, delimiter=',')
+            synapses = self.syn_to_pre_seg.keys()
+            pre_segs = self.syn_to_pre_seg.values()
+            post_segs = self.syn_to_post_seg.values()
+            for syn, pre_seg, post_seg in zip(synapses, pre_segs, post_segs):
+                row = []
+                row.append(syn)
+                row.extend([pre_seg, post_seg])
+                row.extend(self.syn_coords[syn])
+                row.append(self.syn_size[syn])
+                row.extend(self.syn_coords_pre_post[syn][0])
+                row.extend(self.syn_coords_pre_post[syn][1])
+                w.writerow(row)
+
+    def remove_edge(self, syn):
+        """Remove edge from all the dictionaries
+
+        Args:
+            syn: synapse ID
+        
+        Returns:
+            Updated dictionaries
+        """
+        print 'deleting synapse no. ' + str(syn)
+        pre = self.syn_to_pre_seg[syn]
+        post = self.syn_to_post_seg[syn]
+        del self.syn_to_pre_seg[syn]
+        del self.syn_to_post_seg[syn]
+        del self.syn_coords[syn]
+        del self.syn_size[syn]
+        del self.syn_coords_pre_post[syn]
+        self.pre_to_syns[pre].remove(syn)
+        self.post_to_syns[post].remove(syn)
+        shared_synapses = self.segs_to_syn[(pre, post)]
+        if len(shared_synapses) > 1:
+            self.segs_to_syn[(pre, post)].remove(syn)
         else:
-            syn_coords_pre_post[edges[i,0]] = [syn_coords[edges[i,0]], 
-                                                        syn_coords[edges[i,0]]]
-        syn_size[edges[i,0]] = edges[i,6]
-        push_dict(segs_to_syn, tuple(edges[i,1:3].tolist()), edges[i,0])
-        push_dict(seg_to_syn, edges[i,1], edges[i,0])
-        push_dict(seg_to_syn, edges[i,2], edges[i,0])
-        push_dict(seg_to_neighbors, edges[i,1], edges[i,2])
-        push_dict(seg_to_neighbors, edges[i,2], edges[i,1])
-        seg_prepost[edges[i,1]] = 0
-        seg_prepost[edges[i,2]] = 1
+            del self.segs_to_syn[(pre, post)]
+            self.post_to_pre[post].remove(pre)
+            self.pre_to_post[pre].remove(post)
+        self.edit_stack.append(syn)
 
-    unique(seg_to_neighbors)
+    def add_edge(self, pre, post, pre_coord, post_coord):
+        """Add edge to the edge dictionaries
 
-    labels = 'syn_to_segs', 'segs_to_syn', 'syn_coords', \
-                'syn_coords_pre_post', 'syn_size', 'seg_to_syn', \
-                'seg_to_neighbors', 'seg_prepost'
-    edge_dict = syn_to_segs, segs_to_syn, syn_coords, syn_coords_pre_post, \
-                        syn_size, seg_to_syn, seg_to_neighbors, seg_prepost
-    
-    return dict(rel for rel in zip(labels, edge_dict))
+        Args:
+            pre: presynaptic seg ID
+            post: postsynaptic seg ID
+            pre_coord: presynaptic synapse coordinate
+            post_coord: postsynaptic synapse coordinate
+        
+        Returns:
+            Updated dictionaries
+        """
+        self.max_syn += 1
+        syn = self.max_syn
+        print 'adding synapse no. ' + str(syn)
+        points = np.array([pre_coord, post_coord])
+        center = np.round(np.mean(points, axis=0)).astype(int).tolist()
+        self.syn_to_pre_segs[syn] = pre
+        self.syn_to_pre_segs[syn] = post
+        self.syn_coords[syn] = center
+        self.syn_size[syn] = 0
+        self.syn_coords_pre_post[syn] = [pre_coord, post_coord]
+        self.segs_to_syn[(pre, post)] = syn
+        push_dict(self.pre_to_syns, pre, syn)
+        push_dict(self.post_to_syns, post, syn)
+        push_dict(self.pre_to_post, pre, post)
+        push_dict(self.post_to_pre, post, pre)
 
-def write_dicts_to_edges(fn, edge_dict):
-    """Write set of edge dicts back to edges csv file
-    """
-    with open(fn, 'wb') as f:
-        w = csv.writer(f, delimiter=',')
-        for syn, segs in edge_dict['syn_to_segs'].iteritems():
-            row = []
-            row.append(syn)
-            row.extend(segs)
-            row.extend(edge_dict['syn_coords'][syn])
-            row.extend(edge_dict['syn_coords_pre_post'][syn][0])
-            row.extend(edge_dict['syn_coords_pre_post'][syn][1])
-            w.writerow(row)
+        self.post_to_pre[pre] = list(set(self.post_to_pre[pre]))
+        self.post_to_pre[post] = list(set(self.post_to_pre[post]))
+
+        self.edit_stack.append(syn)
+
+    def undo(self):
+        syn = self.edit_stack(pop)
+
 
 def transform_coords(coords_dict, offset, s=np.array([1,1,1])):
     """Rescale & translate a dictionary of coordinates
