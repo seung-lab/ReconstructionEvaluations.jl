@@ -3,9 +3,36 @@ import copy
 import h5py
 import numpy as np
 
+class Segment(object):
+
+    def __init__(self, edge_dict, seg_id=0):
+        """Segment object loads relevant information for specifc segment
+        """
+        self.edge_dict = edge_dict
+        self.seg_id = seg_id
+    
+        self.pre_neighbors
+        self.post_neighbors
+        self.pre_synapses
+        self.post_synapses
+
+        self.neighbors = edge_dict['seg_to_neighbors'][seg_id]
+        self.synapses = edge_dict['seg_to_syn'][seg_id]
+
+    def get_synapses(self):
+        return self.synapses
+
+    def get_neighbors(self):
+        return self.neighbors
+
+    def __repr__(self):
+        s  = "seg id:\t" + str(self.seg_id) + "\n"
+        s += "neighbors:\t" + str(len(self.neighbors)) + "\n"
+        s += "synapses:\t" + str(len(self.synapses)) + "\n"
+
 class Model(object):
 
-    def __init__(self, infile, outfile, segmentation_file):
+    def __init__(self, src_file, dst_file):
         """Model object governs the edge dictionaries
 
         Attributes:
@@ -21,90 +48,67 @@ class Model(object):
         self.edge_dict = {}
         self.original_edge_dict = {}
         self.synapses = []
-        self.synapse_coordinates = []
-        self.working_synapse_coordinates = []
-        self.synapse_idx = 0
-        self.synapse_classifications = {}
+        self.coords = []
         self.segments = []
-        self.current_segment = 0
-        self.segment_idx = 0
-        self.infile = infile
-        self.outfile = outfile
-        self.segmentation_file = segmentation_file
-        self.max_syn_id = 0
+        self.neighbors = []
+        self.src_file = src_file
+        self.dst_file = dst_file
 
-        self.read_data(infile)
-        self.create_segment_list()
-        self.create_synapse_list()
+        self.load(src_file)
 
-    def read_data(self, filename):
+    def set_segments(self, seg_ids):
+        self.segments = [Segment(seg_id) for seg_id in seg_ids]
+
+    def load_all_synapses(self):
+
+    def load_shared_synapses(self):
+
+    def load_pre_synapses(self):
+
+    def load_post_synapses(self):
+
+    def load_synapse_centroids(self):
+
+    def load_pre_post_centroids(self):
+
+    def load_all_neighbors(self):
+
+    def load_shared_neighbors(self):
+
+    def load_pre_neighbors(self):
+
+    def load_post_neighbors(self):
+
+    def get_synapses(self):
+
+    def get_segments(self):
+
+    def get_neighbors(self):
+
+    def reset(self):
+
+    def update_synapses(self, coords):
+        edges.add_edge
+        edges.remove_edge
+
+    def load(self, filename):
         """Reads data from csv file, filename, and processes it into dict
         """
         self.edge_dict = edges.create_edge_dict(edges.load_edges(filename))
         self.original_edge_dict = copy.deepcopy(self.edge_dict)
-        self.max_syn_id = np.max(np.array(self.edge_dict['syn_coords'].keys()))
 
-    def write_data(self):
+    def write(self):
         """Write update edges csv to outfile
         """
         print 'Writing edges to ' + self.outfile
         edges.write_dicts_to_edges(self.outfile, self.edge_dict)
 
-    def read_segment_id(self, coord):
+    def get_seg_value(self, coord):
         """Lookup coordinate in the segmentation H5 file
         """
         f = h5py.File(self.segmentation_file, "r")
         dset = f['/main']
         return int(dset[tuple(coord)])
-
-    def create_segment_list(self):
-        """Creates a list of unique segments in edge_dict"""
-        self.segments = self.edge_dict['seg_to_syn'].keys()
-        self.segments.sort()
-
-    def create_synapse_list(self):
-        """Creates a list of unique synapses in edge_dict"""
-        self.synapses = self.edge_dict['syn_coords'].keys()
-
-    def next_segment(self):
-        """Returns next synapse ID in list of synapses"""
-        self.segment_idx += 1
-        self.set_segment(self.segments[self.segment_idx])
-        return self.current_segment
-
-    def prev_segment(self):
-        """Returns previous synapse ID in list of synapses"""
-        self.segment_idx -= 1
-        self.set_segment(self.segments[self.segment_idx])
-        return self.current_segment
-
-    def set_segment(self, seg_id):
-        print 'set segment to ' + str(seg_id)
-        self.current_segment = seg_id
-        self.segment_idx = self.segments.index(seg_id)
-        print str(self.segment_idx) + ' / ' + str(len(self.segments))
-
-    def load_synapses(self):
-        """Update synapse list of IDs based on the current segment & update
-        the list of synapse coordinates
-        """
-        self.synapses = self.edge_dict['seg_to_syn'][self.current_segment]
-        self.synapse_coordinates = []
-        syn_coords_pre_post = self.edge_dict['syn_coords_pre_post']
-        for s in self.synapses:
-            self.synapse_coordinates.extend(syn_coords_pre_post[s])
-    
-    def get_synapse_coordinates(self):
-        return self.synapse_coordinates
-
-    # def reset_synapses(self):
-    #     """Replace working synapse list for current seg with original list
-    #     """
-    #     print 'Reset synapses for ' + str(self.current_segment)
-    #     seg_id = self.current_segment
-    #     seg_to_syn = self.edge_dict['seg_to_syn']
-    #     original_seg_to_syn = self.original_edge_dict['seg_to_syn']
-    #     seg_to_syn[seg_id] = original_seg_to_syn[seg_id]
 
     def update_dicts(self, current_synapse_coordinates):
         """Update the edge dicts based on the list of working synapse coords
@@ -175,46 +179,3 @@ class Model(object):
         edges.unique(self.edge_dict['pre_to_post'])
         edges.unique(self.edge_dict['post_to_pre'])
         self.load_synapses()
-
-    def next_synapse(self):
-        """Returns next synapse ID in list of synapses"""
-        self.synapse_idx += 1
-        return self.current_synapse
-
-    def prev_synapse(self):
-        """Returns previous synapse ID in list of synapses"""
-        self.synapse_idx -= 1
-        return self.current_synapse
-
-    def classify_synapse(self, classification):
-        """Classifies current synapse as class"""
-        self.synapse_classifications[self.current_synapse] = classification
-
-    @property
-    def num_segments(self):
-        return len(self.segments)
-
-    @property
-    def num_classified(self):
-        return len(self.synapse_classifications)
-
-    @property
-    def num_synapses(self):
-        return len(self.synapses)
-
-    @property
-    def current_synapse(self):
-        """Returns synapse ID of current synapse"""
-        #TODO: raise an error if idx out of bounds
-        return self.synapses[self.synapse_idx]
-
-#Tests
-if __name__ == '__main__':
-    assert len(sys.argv) > 2
-    infile = sys.argv[1]
-    outfile = "synapse_scroller_tmp.csv"
-    m = Model(infile, outfile)
-    import pdb; pdb.set_trace()
-    print m.current_synapse, m.next_synapse(), m.prev_synapse()
-    m.classify_synapse(3)
-    print m.synapse_classifications
