@@ -121,6 +121,8 @@ class Edges(object):
         print 'deleting synapse no. ' + str(syn)
         pre = self.syn_to_pre_seg[syn]
         post = self.syn_to_post_seg[syn]
+        size = self.syn_size[syn]
+        pre_coord, post_coord = self.syn_coords_pre_post[syn]
         del self.syn_to_pre_seg[syn]
         del self.syn_to_post_seg[syn]
         del self.syn_coords[syn]
@@ -135,9 +137,9 @@ class Edges(object):
             del self.segs_to_syn[(pre, post)]
             self.post_to_pre[post].remove(pre)
             self.pre_to_post[pre].remove(post)
-        self.edit_stack.append(syn)
+        self.edit_stack.append((0, syn, pre, post, pre_coord, post_coord, size))
 
-    def add_edge(self, pre, post, pre_coord, post_coord):
+    def add_edge(self, pre, post, pre_coord, post_coord, size=0, syn=0):
         """Add edge to the edge dictionaries
 
         Args:
@@ -145,19 +147,21 @@ class Edges(object):
             post: postsynaptic seg ID
             pre_coord: presynaptic synapse coordinate
             post_coord: postsynaptic synapse coordinate
+            size: volume of the PSD in voxels
         
         Returns:
             Updated dictionaries
         """
-        self.max_syn += 1
-        syn = self.max_syn
+        if syn == 0:
+            self.max_syn += 1
+            syn = self.max_syn
         print 'adding synapse no. ' + str(syn)
         points = np.array([pre_coord, post_coord])
         center = np.round(np.mean(points, axis=0)).astype(int).tolist()
-        self.syn_to_pre_segs[syn] = pre
-        self.syn_to_pre_segs[syn] = post
+        self.syn_to_pre_seg[syn] = pre
+        self.syn_to_post_seg[syn] = post
         self.syn_coords[syn] = center
-        self.syn_size[syn] = 0
+        self.syn_size[syn] = size
         self.syn_coords_pre_post[syn] = [pre_coord, post_coord]
         self.segs_to_syn[(pre, post)] = syn
         push_dict(self.pre_to_syns, pre, syn)
@@ -165,13 +169,23 @@ class Edges(object):
         push_dict(self.pre_to_post, pre, post)
         push_dict(self.post_to_pre, post, pre)
 
-        self.post_to_pre[pre] = list(set(self.post_to_pre[pre]))
+        self.pre_to_post[pre] = list(set(self.pre_to_post[pre]))
         self.post_to_pre[post] = list(set(self.post_to_pre[post]))
 
-        self.edit_stack.append(syn)
+        self.edit_stack.append((1, syn, pre, post, pre_coord, post_coord, size))
 
     def undo(self):
-        syn = self.edit_stack(pop)
+        if self.edit_stack:
+            last_edit = self.edit_stack.pop()
+            add_del, syn, pre, post, pre_coord, post_coord, size = last_edit
+            if add_del:
+                self.remove_edge(syn)
+                self.edit_stack.pop();
+            else:
+                self.add_edge(pre, post, pre_coord, post_coord, size, syn)
+                self.edit_stack.pop();
+        else:
+            print('No changes made.')
 
 
 def transform_coords(coords_dict, offset, s=np.array([1,1,1])):

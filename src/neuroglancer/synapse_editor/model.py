@@ -2,6 +2,7 @@ from edges import Edges
 import copy
 import h5py
 import numpy as np
+from operator import or_
 
 class Segment(object):
 
@@ -10,8 +11,8 @@ class Segment(object):
         """
         self.id = seg_id
     
-        self.pre_neighbors = edges.post_to_pre.get(seg_id, [])
-        self.post_neighbors = edges.pre_to_post.get(seg_id, [])
+        self.pre_neighbors = edges.pre_to_post.get(seg_id, [])
+        self.post_neighbors = edges.post_to_pre.get(seg_id, [])
         self.pre_synapses = edges.pre_to_syns.get(seg_id, [])
         self.post_synapses = edges.post_to_syns.get(seg_id, [])
         print(self)
@@ -48,8 +49,8 @@ class Model(object):
         """Model object governs the edge dictionaries
 
         Attributes:
-            original_edge_dict: set of edge dicts to reset changes
-            edge_dict: working set of dicts
+            edges: Edges object with all edge dictionaries
+
             synapses: list of current synapses to be displayed
             synapse_idx: index of current synapse
             synapse_classifications: dict of synapse labelings
@@ -58,13 +59,10 @@ class Model(object):
             segment_idx: index of current segment
         """
         self.edges = Edges(src_file, dst_file)
-        self.original_edge_dict = {}
-        self.synapses = []
-        self.coords = []
         self.segments = []
-        self.neighbors = []
-        self.type = 'all'
-        self.shared = False
+        self.synapses = {'pre': [], 'post': [], 'shared': []}
+        self.coords = {'pre': [], 'post': [], 'shared': []}
+        self.neighbors = {'pre': [], 'post': [], 'shared': []}
 
     def set_segments(self, seg_ids):
         self.segments = [Segment(self.edges, seg_id) for seg_id in seg_ids]
@@ -73,65 +71,72 @@ class Model(object):
         print(self)
 
     def load_synapses(self):
-        synapses = []
+        pre_synapses = []
+        post_synapses = []
+        shared_synapses = []
         for seg in self.segments:
-            synapses.append(set(seg.get_synapses(self.type)))
-        if self.shared:
-            shared_synapses = []
-            for i, syn_i in enumerate(synapses):
-                for j, syn_j in enumerate(synapses):
-                    if i != j:
-                        shared_synapses.append(syn_i.intersection(syn_j))
-            synapses = shared_synapses
-        self.synapses = sum(map(list, synapses), [])
-        self.load_synapse_centroids()
+            pre_synapses.append(set(seg.get_synapses('pre')))
+            post_synapses.append(set(seg.get_synapses('post')))
+        for i, pre in enumerate(pre_synapses):
+            for j, post in enumerate(post_synapses):
+                if i != j:
+                    shared_synapses.append(pre & post)
+        self.synapses['pre'] = list(reduce(or_, pre_synapses, set()))
+        self.synapses['post'] = list(reduce(or_, post_synapses, set()))
+        self.synapses['shared'] = list(reduce(or_, shared_synapses, set()))
+        self.load_centroids()
 
-    def load_synapse_centroids(self):
-        coords = []
-        for syn in self.synapses:
-            coords.append(self.edges.syn_coords[syn])
-        self.coords = coords
+    def load_centroids(self):
+        for k, syn in self.synapses.items():
+            coords = []
+            for syn in self.synapses[k]:
+                coords.append(self.edges.syn_coords[syn])
+            self.coords[k] = coords
 
-    def load_pre_post_centroids(self):
-        coords = []
-        for syn in self.synapses:
-            coords.append(self.edges.syn_coords_pre_post[syn])
-        self.coords = coords
+    # def load_pre_post_centroids(self):
+    #     coords = []
+    #     for syn in self.synapses:
+    #         coords.append(self.edges.syn_coords_pre_post[syn])
+    #     self.coords = coords
 
     def load_neighbors(self):
-        neighbors = []
+        pre_neighbors = []
+        post_neighbors = []
+        shared_neighbors = []
         for seg in self.segments:
-            neighbors.append(set(seg.get_neighbors(self.type)))
-        if self.shared:
-            shared_neighbors = []
-            for i, seg_i in enumerate(neighbors):
-                for j, seg_j in enumerate(neighbors):
-                    if i != j:
-                        shared_neighbors.append(seg_i.intersection(seg_j))
-            neighbors = shared_neighbors
-        self.neighbors = sum(map(list, neighbors), [])
+            pre_neighbors.append(set(seg.get_neighbors('pre')))
+            post_neighbors.append(set(seg.get_neighbors('post')))
+        for i, pre in enumerate(pre_neighbors):
+            for j, post in enumerate(post_neighbors):
+                if i != j:
+                    shared_neighbors.append(pre & post)
+        self.neighbors['pre'] = list(reduce(or_, pre_neighbors, set()))
+        self.neighbors['post'] = list(reduce(or_, post_neighbors, set()))
+        self.neighbors['shared'] = list(reduce(or_, shared_neighbors, set()))
 
-    def get_synapses(self):
-        return self.synapses
+    def get_synapses(self, k='all'):
+        if k not in self.synapses.keys():
+            return self.synapses['pre'] + self.synapses['post']
+        else:
+            return self.synapses[k]
 
-    def get_coords(self):
-        return self.coords
+    def get_coords(self, k='all'):
+        if k not in self.coords.keys():
+            return self.coords['pre'] + self.coords['post']
+        else:
+            return self.coords[k]
 
-    def get_segments(self, neighbors=False):
+    def get_neighbors(self, k='all'):
+        if k not in self.neighbors.keys():
+            return self.neighbors['pre'] + self.neighbors['post']
+        else:
+            return self.neighbors[k]
+
+    def get_segments(self, k, neighbors=False):
         segs = [seg.id for seg in self.segments]
-        segs += self.neighbors if neighbors else []
+        if neighbors:
+            segs += self.get_neighbors(k)
         return segs
-
-    def get_neighbors(self):
-        return self.neighbors
-
-    def undo(self):
-        self.edges.undo()
-
-    def save(self):
-        """Write update edges csv to outfile
-        """
-        self.edges.save()
 
     def get_seg_value(self, coord):
         """Lookup coordinate in the segmentation H5 file
@@ -140,7 +145,10 @@ class Model(object):
         dset = f['/main']
         return int(dset[tuple(coord)])
 
-    def update_synapses(self, new_coords, pre_post_centroids=False):
+    def add_edge(self, pre, post, centroid):
+        self.edges.add_edge(pre, post, centroid, centroid)
+
+    def update_synapses(self, k, new_coords):
         """Update the edge dicts based on the list of new synapse coords
 
         Run through current coords and the working list, tabulating which need
@@ -150,9 +158,9 @@ class Model(object):
         Then run through the "to add" and "to remove" lists, making the 
         adjustments to the edge dicts.
         """
-        old_coords = self.coords
-
-        syn_to_remove = np.ones(len(self.synapses), dtype=bool)
+        old_coords = self.get_coords(k)
+        old_synapses = self.get_synapses(k)
+        syn_to_remove = np.ones(len(old_synapses), dtype=bool)
         syn_to_add = np.ones(len(new_coords), dtype=bool)
 
         for i, old_coord in enumerate(old_coords):
@@ -161,8 +169,12 @@ class Model(object):
                     syn_to_remove[i] = False
                     syn_to_add[j] = False
 
-        for syn in np.array(self.synapses)[syn_to_remove]:
+        for syn in np.array(old_synapses)[syn_to_remove]:
             self.edges.remove_edge(syn)
+
+        if sum(syn_to_add) > 0:
+            print('There are new synapses. Use model.add_edge() ' + 
+                'to manually add them.')
 
         # if pre_post_centroids:
         #     new_coords = zip(new_coords[::2], new_coords[1::2])
@@ -184,9 +196,18 @@ class Model(object):
         #     if pre != 0 and post != 0:
         #         self.edges.add_edge(pre, post, pre_coord, post_coord)
 
+    def undo(self):
+        self.edges.undo()
+
+    def save(self):
+        """Write update edges csv to outfile
+        """
+        self.edges.save()
+
     def __repr__(self):
         s  = 'no\tsyn\tcentroid\t\tpre\t\tpost\n'
-        for i, (syn, coord) in enumerate(zip(self.synapses, self.coords)):
+        syn_coord = zip(self.get_synapses(), self.get_coords())
+        for i, (syn, coord) in enumerate(syn_coord):
             pre = self.edges.syn_to_pre_seg[syn]
             post = self.edges.syn_to_post_seg[syn]
             s += str(i) + '\t' 
