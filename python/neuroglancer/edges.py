@@ -14,7 +14,7 @@ def push_dict(d, k, v):
 def unique(d):
     """For dicts with lists, make all lists unique
     """
-    for k, v in d.iteritems():
+    for k, v in d.items():
         d[k] = list(set(v))
 
 class Edges(object):
@@ -118,7 +118,7 @@ class Edges(object):
         Returns:
             Updated dictionaries
         """
-        print 'deleting synapse no. ' + str(syn)
+        print('deleting synapse no. ' + str(syn))
         pre = self.syn_to_pre_seg[syn]
         post = self.syn_to_post_seg[syn]
         size = self.syn_size[syn]
@@ -155,7 +155,7 @@ class Edges(object):
         if syn == 0:
             self.max_syn += 1
             syn = self.max_syn
-        print 'adding synapse no. ' + str(syn)
+        print('adding synapse no. ' + str(syn))
         points = np.array([pre_coord, post_coord])
         center = np.round(np.mean(points, axis=0)).astype(int).tolist()
         self.syn_to_pre_seg[syn] = pre
